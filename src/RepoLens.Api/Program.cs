@@ -3,6 +3,10 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using RepoLens.Api.Errors;
+using RepoLens.Api.Endpoints;
+using RepoLens.Api.Startup;
+using RepoLens.Application;
 using RepoLens.Infrastructure;
 using RepoLens.Infrastructure.Persistence;
 
@@ -33,11 +37,16 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
         "Connection string 'DefaultConnection' is not configured. "
         + "Set ConnectionStrings__DefaultConnection or add it to appsettings.{Environment}.json.");
 
+builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
 
 // --- Health checks: /health reports 200 only when the API can reach PostgreSQL. ---
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<RepoLensDbContext>("database");
+
+// --- Typed upstream-error mapping (GitHub rate limits, 5xx, network…). ---
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // --- OpenTelemetry: ASP.NET Core and HttpClient instrumentation. ---
 // Export is opt-in: set OTEL_EXPORTER_OTLP_ENDPOINT to send traces/metrics to a
@@ -56,9 +65,15 @@ if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOIN
     builder.Services.AddOpenTelemetry().UseOtlpExporter();
 }
 
+// --- Schema: apply EF migrations at startup (idempotent). ---
+builder.Services.AddHostedService<DatabaseMigratorHostedService>();
+
 var app = builder.Build();
 
+app.UseExceptionHandler();
+
 app.MapHealthChecks("/health");
+app.MapDiscoveryEndpoints();
 
 app.Run();
 
