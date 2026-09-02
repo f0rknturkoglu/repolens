@@ -27,6 +27,7 @@ public sealed class RepoLensDbContext(DbContextOptions<RepoLensDbContext> option
     public DbSet<EcosystemCluster> EcosystemClusters => Set<EcosystemCluster>();
     public DbSet<IdeaValidation> IdeaValidations => Set<IdeaValidation>();
     public DbSet<Domain.Portfolio.PortfolioAnalysis> PortfolioAnalyses => Set<Domain.Portfolio.PortfolioAnalysis>();
+    public DbSet<Domain.Recommendation.RecommendationRequest> RecommendationRequests => Set<Domain.Recommendation.RecommendationRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

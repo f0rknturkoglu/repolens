@@ -39,6 +39,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             >
               Portfolio
             </Link>
+            <Link
+              to="/recommend"
+              className="rounded-md px-2 py-1 hover:bg-muted hover:text-foreground"
+            >
+              Find My Next Project
+            </Link>
           </nav>
         </div>
       </header>

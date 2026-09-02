@@ -6,6 +6,7 @@ import { SearchPage } from '@/pages/search'
 import { EcosystemPage } from '@/pages/ecosystem'
 import { IdeaValidationPage } from '@/pages/idea-validation'
 import { PortfolioPage } from '@/pages/portfolio'
+import { RecommendationPage } from '@/pages/recommendations'
 import { RepositoryDetailPage } from '@/pages/repository-detail'
 
 export default function App() {
@@ -49,6 +50,14 @@ export default function App() {
         element={
           <AppLayout>
             <PortfolioPage />
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/recommend"
+        element={
+          <AppLayout>
+            <RecommendationPage />
           </AppLayout>
         }
       />

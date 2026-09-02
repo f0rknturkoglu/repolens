@@ -3,6 +3,7 @@ using RepoLens.Application.Discovery;
 using RepoLens.Application.Enrichment;
 using RepoLens.Application.IdeaValidation;
 using RepoLens.Application.Portfolio;
+using RepoLens.Application.Recommendation;
 using RepoLens.Application.Analysis;
 using RepoLens.Application.Searching;
 
@@ -37,6 +38,9 @@ public static class DependencyInjection
         services.AddScoped<PortfolioAnalysisService>();
         services.AddScoped<PortfolioResultBuilder>();
         services.AddScoped<MarginalValueService>();
+
+        services.AddScoped<CandidateValidator>();
+        services.AddScoped<RecommendationService>();
 
         services.AddSingleton(enrichmentSettings);
 
