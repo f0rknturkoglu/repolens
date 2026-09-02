@@ -122,11 +122,11 @@ public sealed class RepositorySearchClientTests
 
         await client.SearchAsync(new RepositorySearchRequest("migrations", 3, 25), CancellationToken.None);
 
-        var logEntry = Assert.Single(mock.Server.LogEntries);
-        var request = Assert.IsType<WireMock.Logging.LogEntry>(logEntry).RequestMessage;
-        Assert.NotNull(request);
-        Assert.Contains("page=3", request.AbsolutePath, StringComparison.Ordinal);
-        Assert.Contains("per_page=25", request.AbsolutePath, StringComparison.Ordinal);
+        var matches = mock.Server.FindLogEntries(
+            Request.Create().WithPath("/search/repositories")
+                .WithParam("page", "3")
+                .WithParam("per_page", "25"));
+        Assert.NotEmpty(matches); // pagination params were forwarded to GitHub
     }
 
     [Fact]

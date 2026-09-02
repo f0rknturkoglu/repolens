@@ -49,11 +49,12 @@ public sealed class IdeaValidationApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Validate_CompletesWithNoveltyCompetitorsAndEvidence()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         MockAnySearch(mock, 97001, 97002);
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -78,10 +79,11 @@ public sealed class IdeaValidationApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Validate_IdenticalIdeaHitsCacheWithoutNewGitHubCalls()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         MockAnySearch(mock, 97010);
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -103,6 +105,7 @@ public sealed class IdeaValidationApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Validate_MalformedLlmOutput_FallsBackToDeterministicPlan()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         MockAnySearch(mock, 97020);
         // A chat endpoint that returns non-JSON content: the plan builder must
@@ -113,7 +116,7 @@ public sealed class IdeaValidationApiTests(PostgresContainerFixture postgres)
                 .WithBody("""{"choices":[{"message":{"content":"I cannot help with that."}}]}"""));
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web =>
             {
                 web.UseSetting("GitHub:BaseUrl", mock.BaseUrl);
@@ -137,9 +140,10 @@ public sealed class IdeaValidationApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Validate_BlankIdea_Returns400()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 

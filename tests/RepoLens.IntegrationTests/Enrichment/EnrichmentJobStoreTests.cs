@@ -17,6 +17,14 @@ public static class EnrichmentTestData
         await db.Database.MigrateAsync();
         await db.Database.ExecuteSqlRawAsync(
             """
+            DELETE FROM recommendation_requests;
+            DELETE FROM idea_validations;
+            DELETE FROM ecosystem_clusters;
+            DELETE FROM ecosystem_analysis_candidates;
+            DELETE FROM ecosystem_analyses;
+            DELETE FROM portfolio_analyses;
+            DELETE FROM saved_analyses;
+            DELETE FROM users;
             DELETE FROM enrichment_jobs;
             DELETE FROM search_documents;
             DELETE FROM repository_snapshots;

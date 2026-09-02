@@ -99,7 +99,7 @@ public sealed class SearchApiTests(PostgresContainerFixture postgres)
         var repos = await SeedThreeRepositoriesAsync(db, CancellationToken.None);
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web =>
             {
                 web.UseSetting("Embedding:BaseUrl", mock.BaseUrl);
@@ -127,10 +127,10 @@ public sealed class SearchApiTests(PostgresContainerFixture postgres)
     {
         using var mock = new GitHubApiMock(); // unused: no embedding calls should happen
         await using var db = await SeedAsync(postgres.ConnectionString, CancellationToken.None);
-        await SeedThreeRepositoriesAsync(db, CancellationToken.None);
+        var repos = await SeedThreeRepositoriesAsync(db, CancellationToken.None);
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("Embedding:Model", ""));
         using var client = application.CreateClient();
 
@@ -141,7 +141,7 @@ public sealed class SearchApiTests(PostgresContainerFixture postgres)
         Assert.NotNull(body);
         Assert.Equal("Keyword", body.Method);
         Assert.NotNull(body.VectorFallbackReason);
-        Assert.Single(body.Items, i => i.FullName.Contains("migra", StringComparison.OrdinalIgnoreCase));
+        Assert.Single(body.Items, i => i.Id == repos[0].Id);
         Assert.Equal(0, mock.SearchRequestCount); // embeddings never called
     }
 
@@ -151,7 +151,7 @@ public sealed class SearchApiTests(PostgresContainerFixture postgres)
         using var mock = new GitHubApiMock();
         await using var db = await SeedAsync(postgres.ConnectionString, CancellationToken.None);
         await using var application = new ApiApplication(postgres.ConnectionString);
-        using var client = application.CreateClient();
+                using var client = application.CreateClient();
 
         using var response = await client.GetAsync("/api/search/repositories?q=");
 
@@ -167,7 +167,7 @@ public sealed class SearchApiTests(PostgresContainerFixture postgres)
         var repos = await SeedThreeRepositoriesAsync(db, CancellationToken.None);
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web =>
             {
                 web.UseSetting("Embedding:BaseUrl", mock.BaseUrl);
@@ -198,7 +198,7 @@ public sealed class SearchApiTests(PostgresContainerFixture postgres)
         using var mock = new GitHubApiMock();
         await using var db = await SeedAsync(postgres.ConnectionString, CancellationToken.None);
         await using var application = new ApiApplication(postgres.ConnectionString);
-        using var client = application.CreateClient();
+                using var client = application.CreateClient();
 
         using var response = await client.GetAsync("/api/repositories/9999999/similar?limit=10");
 

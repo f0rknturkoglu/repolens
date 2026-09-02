@@ -69,7 +69,7 @@ public sealed class DiscoveryApiTests(PostgresContainerFixture postgres)
                 .WithBody(TwoItemsPayload));
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -115,7 +115,7 @@ public sealed class DiscoveryApiTests(PostgresContainerFixture postgres)
     {
         using var mock = new GitHubApiMock();
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -139,7 +139,7 @@ public sealed class DiscoveryApiTests(PostgresContainerFixture postgres)
                 .WithBody("""{"message":"API rate limit exceeded for SUPER-SECRET-CONTEXT"}"""));
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -161,7 +161,7 @@ public sealed class DiscoveryApiTests(PostgresContainerFixture postgres)
             .RespondWith(Response.Create().WithStatusCode(500).WithBody("""{"message":"boom"}"""));
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -181,7 +181,7 @@ public sealed class DiscoveryApiTests(PostgresContainerFixture postgres)
                 .WithBody("""{"message":"Validation Failed"}"""));
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 

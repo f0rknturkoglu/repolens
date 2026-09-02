@@ -20,7 +20,7 @@ public sealed class RepositoryDetailApiTests(PostgresContainerFixture postgres)
         var repository = await Enrichment.EnrichmentTestData.InsertRepositoryAsync(db, 93001);
 
         await using var application = new ApiApplication(postgres.ConnectionString);
-        using var client = application.CreateClient();
+                using var client = application.CreateClient();
 
         using var response = await client.GetAsync($"/api/repositories/{repository.Id}");
 
@@ -39,7 +39,7 @@ public sealed class RepositoryDetailApiTests(PostgresContainerFixture postgres)
     {
         await using var db = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         await using var application = new ApiApplication(postgres.ConnectionString);
-        using var client = application.CreateClient();
+                using var client = application.CreateClient();
 
         using var response = await client.GetAsync("/api/repositories/999999");
 
@@ -53,7 +53,7 @@ public sealed class RepositoryDetailApiTests(PostgresContainerFixture postgres)
         var repository = await Enrichment.EnrichmentTestData.InsertRepositoryAsync(db, 93002);
 
         await using var application = new ApiApplication(postgres.ConnectionString);
-        using var client = application.CreateClient();
+                using var client = application.CreateClient();
 
         using var first = await client.PostAsync($"/api/repositories/{repository.Id}/refresh", null);
         Assert.Equal(HttpStatusCode.Accepted, first.StatusCode);
@@ -71,7 +71,7 @@ public sealed class RepositoryDetailApiTests(PostgresContainerFixture postgres)
     {
         await using var db = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         await using var application = new ApiApplication(postgres.ConnectionString);
-        using var client = application.CreateClient();
+                using var client = application.CreateClient();
 
         using var response = await client.PostAsync("/api/repositories/999998/refresh", null);
 

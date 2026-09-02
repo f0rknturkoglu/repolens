@@ -15,19 +15,19 @@ public sealed class PortfolioApiTests(PostgresContainerFixture postgres)
 {
     private const string RepoItem = """
         {
-          "id": {0},
-          "name": "{1}",
-          "full_name": "octocat/{1}",
+          "id": __ID__,
+          "name": "__NAME__",
+          "full_name": "octocat/__NAME__",
           "owner": { "login": "octocat" },
-          "html_url": "https://github.com/octocat/{1}",
-          "description": "{2}",
-          "language": "{3}",
-          "stargazers_count": {4},
+          "html_url": "https://github.com/octocat/__NAME__",
+          "description": "__DESC__",
+          "language": "__LANG__",
+          "stargazers_count": __STARS__,
           "forks_count": 1,
           "open_issues_count": 1,
           "archived": false,
           "fork": false,
-          "topics": {5},
+          "topics": __TOPICS__,
           "size": 1024,
           "created_at": "2021-01-01T00:00:00Z",
           "updated_at": "2024-01-01T00:00:00Z",
@@ -36,7 +36,13 @@ public sealed class PortfolioApiTests(PostgresContainerFixture postgres)
         """;
 
     private static string Repo(long id, string name, string description, string language, int stars, string topicsJson) =>
-        string.Format(RepoItem, id, name, description, language, stars, topicsJson);
+        RepoItem
+            .Replace("__ID__", id.ToString())
+            .Replace("__NAME__", name)
+            .Replace("__DESC__", description)
+            .Replace("__LANG__", language)
+            .Replace("__STARS__", stars.ToString())
+            .Replace("__TOPICS__", topicsJson);
 
     private static void MockUserRepos(GitHubApiMock mock, string body)
     {
@@ -49,6 +55,7 @@ public sealed class PortfolioApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Analyze_ProducesCoverageAndEvidenceReport()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         var body = "[" +
             Repo(98001, "migra-clone", "postgres schema migration tool", "Go", 300, """["migration","postgres","database"]""") + "," +
@@ -58,7 +65,7 @@ public sealed class PortfolioApiTests(PostgresContainerFixture postgres)
         MockUserRepos(mock, body);
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -80,13 +87,14 @@ public sealed class PortfolioApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Marginal_EmptyCategoryIdeaReturnsHighMarginalValue()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         MockUserRepos(mock, "["
             + Repo(98010, "weather-ui", "react weather charts", "JavaScript", 50, """["react"]""")
             + "]");
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -105,13 +113,14 @@ public sealed class PortfolioApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Analyze_UnknownUser_Returns404WithoutLeakingGitHubText()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         mock.Server.Given(Request.Create().WithPath("/users/ghost/repos").UsingGet())
             .RespondWith(Response.Create().WithStatusCode(404)
                 .WithBody("""{"message":"Not Found SECRET"}"""));
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 

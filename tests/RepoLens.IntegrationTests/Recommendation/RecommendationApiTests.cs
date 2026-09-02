@@ -47,11 +47,12 @@ public sealed class RecommendationApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Recommend_ReturnsThreeDistinctExplainedProjects()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         MockAnySearch(mock, 99001, 99002, 99003);
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -81,11 +82,12 @@ public sealed class RecommendationApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Recommend_IdenticalRequestHitsCache()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         MockAnySearch(mock, 99010);
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
         var payload = new
@@ -112,9 +114,10 @@ public sealed class RecommendationApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Recommend_MissingGoal_Returns400()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -126,10 +129,11 @@ public sealed class RecommendationApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Recommend_GetById_ReplaysReport()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         MockAnySearch(mock, 99020);
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 

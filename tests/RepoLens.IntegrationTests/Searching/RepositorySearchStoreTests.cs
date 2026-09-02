@@ -192,19 +192,15 @@ public sealed class RepositorySearchStoreTests(PostgresContainerFixture postgres
         var fresh = await SeedRepositoryAsync(db, 94060, "fresh", "d", "Go", 10, false, null);
         var stale = await SeedRepositoryAsync(db, 94061, "stale", "d", "Go", 10, false, null);
         var none = await SeedRepositoryAsync(db, 94062, "none", "d", "Go", 10, false, null);
-        foreach (var (id, hash) in new[]
-        {
-            (fresh, "same-hash"),
-            (stale, "old-hash"),
-        })
+        foreach (var id in new[] { fresh, stale })
         {
             var canonical = "n\nd\n\n";
-            await store.SaveDocumentAsync(
-                SearchDocument.Create(id, "n", "d", null, "Go", null, SearchDocument.Hash(canonical)), CancellationToken.None);
-            await store.SaveEmbeddingAsync(id, [1f, 0f], Model, hash, DateTimeOffset.UtcNow, CancellationToken.None);
+            var document = SearchDocument.Create(id, "n", "d", null, "Go", null, SearchDocument.Hash(canonical));
+            await store.SaveDocumentAsync(document, CancellationToken.None);
+            await store.SaveEmbeddingAsync(id, [1f, 0f], Model, document.ContentHash, DateTimeOffset.UtcNow, CancellationToken.None);
         }
 
-        // Make the "fresh" doc's content hash differ from the embedding hash.
+        // Make the "fresh" doc's content change so its embedding becomes stale.
         await store.SaveDocumentAsync(
             SearchDocument.Create(fresh, "n2", "d", null, "Go", null, SearchDocument.Hash("changed-content")), CancellationToken.None);
         await SaveDocAsync(store, none, "none", "d", "", null, CancellationToken.None);

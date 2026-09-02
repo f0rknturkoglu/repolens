@@ -52,6 +52,7 @@ public sealed class EcosystemAnalysisApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Analyze_DeduplicatesCandidatesAcrossVariantsAndPersistsSnapshot()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         // exact variant returns A+B; topic variant returns B+C (B overlaps); broad returns C+A.
         MockVariant(mock, "postgres migration", 96001, 96002);
@@ -59,7 +60,7 @@ public sealed class EcosystemAnalysisApiTests(PostgresContainerFixture postgres)
         MockVariant(mock, "postgres migration in:name,description,readme", 96003, 96001);
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -100,9 +101,10 @@ public sealed class EcosystemAnalysisApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Analyze_EmptyQuery_Returns400()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -114,6 +116,7 @@ public sealed class EcosystemAnalysisApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task Analyze_GitHubRateLimited_Returns429AndRecordsFailedAnalysis()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         mock.Server.Given(Request.Create().WithPath("/search/repositories").UsingGet())
             .RespondWith(Response.Create().WithStatusCode(403)
@@ -122,7 +125,7 @@ public sealed class EcosystemAnalysisApiTests(PostgresContainerFixture postgres)
                 .WithBody("""{"message":"rate limited"}"""));
 
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
@@ -144,9 +147,10 @@ public sealed class EcosystemAnalysisApiTests(PostgresContainerFixture postgres)
     [Fact]
     public async Task GetAnalysis_UnknownId_Returns404()
     {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
         using var mock = new GitHubApiMock();
         await using var application = new ApiApplication(
-            postgres.ConnectionString,
+                    postgres.ConnectionString,
             web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
         using var client = application.CreateClient();
 
