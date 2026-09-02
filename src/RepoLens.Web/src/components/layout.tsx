@@ -21,6 +21,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             >
               Search RepoLens
             </Link>
+            <Link
+              to="/ecosystem"
+              className="rounded-md px-2 py-1 hover:bg-muted hover:text-foreground"
+            >
+              Ecosystem
+            </Link>
           </nav>
         </div>
       </header>

@@ -70,6 +70,12 @@ export class ApiError extends Error {
   }
 }
 
+export interface RequestInitFragment {
+  method?: string
+  headers?: Record<string, string>
+  body?: string
+}
+
 async function parseJson(response: Response): Promise<unknown> {
   const text = await response.text()
   if (!text) {
@@ -82,11 +88,19 @@ async function parseJson(response: Response): Promise<unknown> {
   }
 }
 
-/** Calls a relative backend URL and validates the payload with the given schema. */
-export async function getJson<T>(path: string, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
+/**
+ * Calls a relative backend URL and validates the payload with the given schema.
+ * Non-GET requests are supported via `init` (method/headers/body).
+ */
+export async function getJson<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  signal?: AbortSignal,
+  init?: RequestInitFragment,
+): Promise<T> {
   let response: Response
   try {
-    response = await fetch(path, { signal })
+    response = await fetch(path, { signal, ...init })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using RepoLens.Application.Discovery;
 using RepoLens.Application.Enrichment;
+using RepoLens.Application.Analysis;
 using RepoLens.Application.Searching;
 
 namespace RepoLens.Application;
@@ -24,6 +25,9 @@ public static class DependencyInjection
         services.AddScoped<RepositoryIndexer>();
         services.AddScoped<RepositorySearchService>();
         services.AddScoped<SimilarRepositoriesService>();
+
+        services.AddScoped<EcosystemAnalysisService>();
+        services.AddScoped<EcosystemAnalysisResultBuilder>();
 
         services.AddSingleton(enrichmentSettings);
 

@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout'
 import { HomePage } from '@/pages/home'
 import { DiscoverPage } from '@/pages/discover'
 import { SearchPage } from '@/pages/search'
+import { EcosystemPage } from '@/pages/ecosystem'
 import { RepositoryDetailPage } from '@/pages/repository-detail'
 
 export default function App() {
@@ -22,6 +23,14 @@ export default function App() {
         element={
           <AppLayout>
             <SearchPage />
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/ecosystem"
+        element={
+          <AppLayout>
+            <EcosystemPage />
           </AppLayout>
         }
       />

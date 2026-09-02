@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using RepoLens.Application.Analysis;
 using RepoLens.Application.Enrichment;
 using RepoLens.Application.Discovery;
 using RepoLens.Application.Searching;
@@ -47,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<IRepositoryDetailReader>(sp => sp.GetRequiredService<RepositoryStore>());
         services.AddScoped<IEnrichmentJobStore, EnrichmentJobStore>();
         services.AddScoped<IRepositorySearchStore, RepositorySearchStore>();
+        services.AddScoped<IAnalysisStore, AnalysisStore>();
 
         return services;
     }

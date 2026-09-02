@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RepoLens.Domain.Analysis;
 using RepoLens.Domain.Discovery;
 using RepoLens.Domain.Enrichment;
 using RepoLens.Domain.Searching;
@@ -20,6 +21,9 @@ public sealed class RepoLensDbContext(DbContextOptions<RepoLensDbContext> option
     public DbSet<RepositoryReadme> RepositoryReadmes => Set<RepositoryReadme>();
     public DbSet<RepositorySnapshot> RepositorySnapshots => Set<RepositorySnapshot>();
     public DbSet<SearchDocument> SearchDocuments => Set<SearchDocument>();
+    public DbSet<EcosystemAnalysis> EcosystemAnalyses => Set<EcosystemAnalysis>();
+    public DbSet<EcosystemAnalysisCandidate> EcosystemAnalysisCandidates => Set<EcosystemAnalysisCandidate>();
+    public DbSet<EcosystemCluster> EcosystemClusters => Set<EcosystemCluster>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
