@@ -1,0 +1,29 @@
+# ---- .NET ----
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+TestResults/
+.vs/
+*.nupkg
+
+# ---- Node / frontend ----
+node_modules/
+dist/
+*.tsbuildinfo
+.eslintcache
+
+# ---- Environment / secrets ----
+.env
+.env.local
+.env.*.local
+
+# ---- Editors / OS ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Build artifacts from Docker contexts ----
+docker/postgres/data/

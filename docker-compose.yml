@@ -1,0 +1,61 @@
+# RepoLens local development infrastructure.
+#
+# Development-only values below (database name/user/password) are NOT secrets for
+# any real environment — they exist so `docker compose up` works out of the box on
+# a developer machine. Override them with REPOLENS_* environment variables or a
+# .env file when you need something different.
+#
+# Usage:
+#   docker compose up -d postgres          -> database only (apps run on the host)
+#   docker compose --profile full up --build -> full stack (api + web in Docker)
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: ${REPOLENS_DB_NAME:-repolens}
+      POSTGRES_USER: ${REPOLENS_DB_USER:-repolens}
+      POSTGRES_PASSWORD: ${REPOLENS_DB_PASSWORD:-repolens_dev_password}
+    ports:
+      # Development-only: Postgres is exposed on the host so .NET apps run locally.
+      - "${REPOLENS_DB_PORT:-5432}:5432"
+    volumes:
+      - repolens_pgdata:/var/lib/postgresql/data
+      # Runs once on first initialization of the volume (docker compose down -v to reset).
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: src/RepoLens.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${REPOLENS_DB_NAME:-repolens};Username=${REPOLENS_DB_USER:-repolens};Password=${REPOLENS_DB_PASSWORD:-repolens_dev_password}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Not published to the host; reached through the web container's nginx proxy.
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+  web:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: src/RepoLens.Web/Dockerfile
+    ports:
+      - "${REPOLENS_WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  repolens_pgdata:

@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc"],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    // shadcn/ui components export their variant maps alongside the component,
+    // which defeats fast-refresh's only-export-components heuristic. This is the
+    // standard relaxation recommended for shadcn/ui projects.
+    "react/only-export-components": "off"
+  }
+}
