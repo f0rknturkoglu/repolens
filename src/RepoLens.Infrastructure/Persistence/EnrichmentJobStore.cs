@@ -54,8 +54,8 @@ public sealed class EnrichmentJobStore(RepoLensDbContext db) : IEnrichmentJobSto
         var ids = repositoryIds.ToArray();
         return await db.Database.ExecuteSqlInterpolatedAsync(
             $"""
-             INSERT INTO enrichment_jobs (repository_id, type, status, attempts, created_at_utc)
-             SELECT r.id, 0, 0, 0, now()
+             INSERT INTO enrichment_jobs (repository_id, type, status, attempts, created_at_utc, last_error_category)
+             SELECT r.id, 0, 0, 0, now(), 0
              FROM repositories r
              WHERE r.id = ANY({ids})
                AND NOT EXISTS (
@@ -203,7 +203,7 @@ public sealed class EnrichmentJobStore(RepoLensDbContext db) : IEnrichmentJobSto
     {
         var cutoff = DateTimeOffset.UtcNow - staleEnrichmentAge;
         var stale = await db.Repositories
-            .Where(r => r.EnrichedAtUtc == null || r.EnrichedAtUtc <= cutoff)
+            .Where(r => r.EnrichedAtUtc != null && r.EnrichedAtUtc <= cutoff)
             .Where(r => !db.EnrichmentJobs.Any(j => j.RepositoryId == r.Id
                 && (j.Status == EnrichmentJobStatus.Pending
                     || j.Status == EnrichmentJobStatus.Processing
