@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using RepoLens.Application.Discovery;
 using RepoLens.Application.Enrichment;
+using RepoLens.Application.Searching;
 
 namespace RepoLens.Application;
 
@@ -19,6 +20,11 @@ public static class DependencyInjection
         services.AddScoped<RepositoryEnrichmentProcessor>();
         services.AddScoped<RepositoryEnrichmentScheduler>();
         services.AddScoped<RepositoryDetailService>();
+
+        services.AddScoped<RepositoryIndexer>();
+        services.AddScoped<RepositorySearchService>();
+        services.AddScoped<SimilarRepositoriesService>();
+
         services.AddSingleton(enrichmentSettings);
 
         return services;

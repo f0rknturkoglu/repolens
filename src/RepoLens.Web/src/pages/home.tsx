@@ -7,6 +7,11 @@ const flows = [
     description: 'Search GitHub repositories and store them for analysis.',
     to: '/discover',
   },
+  {
+    title: 'Search RepoLens',
+    description: 'Hybrid search over enriched repositories in RepoLens’ own index.',
+    to: '/search',
+  },
 ] as const
 
 export function HomePage() {

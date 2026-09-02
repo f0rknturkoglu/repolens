@@ -11,6 +11,7 @@ import {
   Star,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { SimilarProjectsSection } from '@/components/similar-projects'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout'
 import { RefreshError, fetchRepositoryDetail, refreshRepository } from '@/lib/repositories'
@@ -222,6 +223,8 @@ export function RepositoryDetailPage() {
           </p>
         )}
       </section>
+
+      <SimilarProjectsSection repositoryId={repo.id} enabled={repo.enrichment.status === 'Complete'} />
 
       <p className="mt-4 flex items-center gap-1 text-xs text-muted-foreground">
         <Code2 data-slot="icon" className="size-3.5" />

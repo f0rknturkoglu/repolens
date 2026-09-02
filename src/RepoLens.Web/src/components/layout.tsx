@@ -15,6 +15,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             >
               Explore GitHub
             </Link>
+            <Link
+              to="/search"
+              className="rounded-md px-2 py-1 hover:bg-muted hover:text-foreground"
+            >
+              Search RepoLens
+            </Link>
           </nav>
         </div>
       </header>

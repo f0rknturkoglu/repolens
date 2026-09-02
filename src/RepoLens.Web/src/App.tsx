@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout'
 import { HomePage } from '@/pages/home'
 import { DiscoverPage } from '@/pages/discover'
+import { SearchPage } from '@/pages/search'
 import { RepositoryDetailPage } from '@/pages/repository-detail'
 
 export default function App() {
@@ -13,6 +14,14 @@ export default function App() {
         element={
           <AppLayout>
             <DiscoverPage />
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/search"
+        element={
+          <AppLayout>
+            <SearchPage />
           </AppLayout>
         }
       />

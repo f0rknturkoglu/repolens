@@ -84,6 +84,7 @@ app.UseExceptionHandler();
 app.MapHealthChecks("/health");
 app.MapDiscoveryEndpoints();
 app.MapRepositoryEndpoints();
+app.MapSearchEndpoints();
 
 app.Run();
 

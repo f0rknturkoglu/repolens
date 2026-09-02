@@ -18,6 +18,7 @@ public static class EnrichmentTestData
         await db.Database.ExecuteSqlRawAsync(
             """
             DELETE FROM enrichment_jobs;
+            DELETE FROM search_documents;
             DELETE FROM repository_snapshots;
             DELETE FROM repository_readmes;
             DELETE FROM repository_languages;
