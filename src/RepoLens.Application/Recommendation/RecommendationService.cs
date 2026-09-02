@@ -296,11 +296,11 @@ public sealed class RecommendationService(
             return null;
         }
 
-        var entries = JsonSerializer.Deserialize<List<PortfolioResponse.CoverageEntryDto>>(
+        var entries = JsonSerializer.Deserialize<List<Portfolio.StoredCoverageEntry>>(
             analysis.CoverageJson,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
         return new PortfolioCoverage(
-            entries.Select(e => new CoverageEntry(e.Category, e.EvidenceCount, e.Repositories, e.Band)).ToList(),
+            entries.Select(e => new CoverageEntry(e.Category, e.EvidenceCount, e.RepositoryFullNames, e.Band)).ToList(),
             []);
     }
 
