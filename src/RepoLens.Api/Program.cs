@@ -10,6 +10,7 @@ using RepoLens.Api.Endpoints;
 using RepoLens.Api.Identity;
 using RepoLens.Api.Startup;
 using RepoLens.Api.Workers;
+using RepoLens.Application.Identity;
 using RepoLens.Application;
 using RepoLens.Application.Enrichment;
 using RepoLens.Infrastructure;
@@ -59,6 +60,9 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton(builder.Configuration
     .GetSection(AuthCookieSettings.SectionName)
     .Get<AuthCookieSettings>() ?? new AuthCookieSettings());
+builder.Services.AddSingleton(builder.Configuration
+    .GetSection(GitHubOAuthSettings.SectionName)
+    .Get<GitHubOAuthSettings>() ?? new GitHubOAuthSettings());
 builder.Services.AddScoped<AuthSessionService>();
 
 // --- Rate limiting: cheap global default; "expensive" policy protects costly
@@ -78,7 +82,7 @@ builder.Services.AddRateLimiter(options =>
             }));
     options.AddFixedWindowLimiter("expensive", policy =>
     {
-        policy.PermitLimit = 6;
+        policy.PermitLimit = 20;
         policy.Window = TimeSpan.FromMinutes(1);
         policy.QueueLimit = 0;
     });

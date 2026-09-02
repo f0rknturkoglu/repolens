@@ -68,7 +68,8 @@ public static class DependencyInjection
 
         services.AddSingleton<ITextNormalizer, MarkdigTextNormalizer>();
 
-        services.AddScoped<IRepositoryStore, RepositoryStore>();
+        services.AddScoped<RepositoryStore>();
+        services.AddScoped<IRepositoryStore>(sp => sp.GetRequiredService<RepositoryStore>());
         services.AddScoped<IRepositoryDetailReader>(sp => sp.GetRequiredService<RepositoryStore>());
         services.AddScoped<IEnrichmentJobStore, EnrichmentJobStore>();
         services.AddScoped<IRepositorySearchStore, RepositorySearchStore>();

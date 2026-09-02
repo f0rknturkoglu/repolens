@@ -16,6 +16,7 @@ public sealed class RepositorySearchResponse
     public required int TotalCount { get; init; }
     public required IReadOnlyList<RepositorySearchItemDto> Items { get; init; }
 
+    [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
     public enum SearchMethod { Keyword = 0, Hybrid = 1 }
 
     public sealed record SearchFiltersDto(string? Language, bool? Archived, int? MinStars);
