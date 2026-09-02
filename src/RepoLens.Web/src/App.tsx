@@ -5,6 +5,7 @@ import { DiscoverPage } from '@/pages/discover'
 import { SearchPage } from '@/pages/search'
 import { EcosystemPage } from '@/pages/ecosystem'
 import { IdeaValidationPage } from '@/pages/idea-validation'
+import { PortfolioPage } from '@/pages/portfolio'
 import { RepositoryDetailPage } from '@/pages/repository-detail'
 
 export default function App() {
@@ -40,6 +41,14 @@ export default function App() {
         element={
           <AppLayout>
             <IdeaValidationPage />
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/portfolio"
+        element={
+          <AppLayout>
+            <PortfolioPage />
           </AppLayout>
         }
       />

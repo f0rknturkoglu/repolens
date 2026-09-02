@@ -100,7 +100,7 @@ internal static class GitHubHttp
         headers?.ResetUnixSeconds is null
             ? null
             : DateTimeOffset.FromUnixTimeSeconds(headers.ResetUnixSeconds.Value);
-}
+    }
 
 /// <summary>
 /// HTTP adapter for GitHub enrichment endpoints: repository detail, README (raw
@@ -151,6 +151,7 @@ public sealed class GitHubRepositoryClient(
             CreatedAt = mapped.CreatedAt,
             UpdatedAt = mapped.UpdatedAt,
             PushedAt = mapped.PushedAt,
+            Topics = mapped.Topics,
         };
     }
 
@@ -222,5 +223,72 @@ public sealed class GitHubRepositoryClient(
     private sealed class GitHubTopicsDto
     {
         public List<string>? Names { get; set; }
+    }
+    public async Task<IReadOnlyList<GitHubRepositoryDetail>> GetUserRepositoriesAsync(
+        string username,
+        int maxRepositories,
+        CancellationToken cancellationToken)
+    {
+        var results = new List<GitHubRepositoryDetail>();
+        var page = 1;
+        var perPage = Math.Min(maxRepositories, 100);
+
+        while (results.Count < maxRepositories && page <= 2)
+        {
+            var uri = new Uri(
+                options.Value.BaseUrl.TrimEnd('/')
+                + $"/users/{Uri.EscapeDataString(username)}/repos?per_page={perPage}&page={page}&sort=updated",
+                UriKind.Absolute);
+            using var response = await GitHubHttp.SendAsync(http, options.Value, uri, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw GitHubHttp.ToException(response);
+            }
+
+            var batch = await response.Content.ReadFromJsonAsync<List<GitHubRepositoryDto>>(JsonOptions, cancellationToken)
+                ?? [];
+            if (batch.Count == 0)
+            {
+                break;
+            }
+
+            foreach (var dto in batch)
+            {
+                var mapped = GitHubRepositoryMapper.TryMap(dto);
+                if (mapped is not null)
+                {
+                    results.Add(new GitHubRepositoryDetail
+                    {
+                        GitHubId = mapped.GitHubId,
+                        Owner = mapped.Owner,
+                        Name = mapped.Name,
+                        FullName = mapped.FullName,
+                        Description = mapped.Description,
+                        HtmlUrl = mapped.HtmlUrl,
+                        DefaultBranch = mapped.DefaultBranch,
+                        PrimaryLanguage = mapped.PrimaryLanguage,
+                        Stars = mapped.Stars,
+                        Forks = mapped.Forks,
+                        OpenIssues = mapped.OpenIssues,
+                        IsArchived = mapped.IsArchived,
+                        IsFork = mapped.IsFork,
+                        LicenseSpdx = mapped.LicenseSpdx,
+                        CreatedAt = mapped.CreatedAt,
+                        UpdatedAt = mapped.UpdatedAt,
+                        PushedAt = mapped.PushedAt,
+                        Topics = mapped.Topics,
+                    });
+                }
+            }
+
+            if (batch.Count < perPage)
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        return results;
     }
 }

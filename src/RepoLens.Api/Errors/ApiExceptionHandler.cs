@@ -57,8 +57,14 @@ public sealed class ApiExceptionHandler : IExceptionHandler
         GitHubRequestRejectedException rejected when rejected.StatusCode is 400 or 422 => (
             StatusCodes.Status400BadRequest,
             "invalid_query",
-            "The search query was rejected.",
-            "GitHub could not interpret the search query. Simplify it and retry.",
+            "The request was rejected.",
+            "GitHub could not interpret the request. Simplify it and retry.",
+            null),
+        GitHubRequestRejectedException rejected when rejected.StatusCode is 404 or 410 or 451 => (
+            StatusCodes.Status404NotFound,
+            "not_found",
+            "The requested resource does not exist.",
+            "The GitHub resource you asked for does not exist or is not public.",
             null),
         GitHubRequestRejectedException rejected => (
             StatusCodes.Status502BadGateway,

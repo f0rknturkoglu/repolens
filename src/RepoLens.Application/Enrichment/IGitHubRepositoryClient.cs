@@ -20,6 +20,8 @@ public sealed class GitHubRepositoryDetail
     public required DateTimeOffset CreatedAt { get; init; }
     public required DateTimeOffset UpdatedAt { get; init; }
     public DateTimeOffset? PushedAt { get; init; }
+    /// <summary>Topics when GitHub included them (some listing endpoints do).</summary>
+    public required IReadOnlyList<string> Topics { get; init; } = [];
 }
 
 /// <summary>README content fetched as text. Null represents a missing README.</summary>
@@ -32,9 +34,10 @@ public sealed class GitHubReadmeContent
 
 /// <summary>
 /// Port for GitHub repository enrichment endpoints (detail, README, topics,
-/// languages). Implemented by the Infrastructure HTTP adapter; errors surface as
-/// the typed exceptions from the Discovery module's GitHub error set. A missing
-/// README (404) is returned as null, not as an error.
+/// languages) and public user-repository listing. Implemented by the
+/// Infrastructure HTTP adapter; errors surface as the typed exceptions from the
+/// Discovery module's GitHub error set. A missing README (404) is returned as
+/// null, not as an error.
 /// </summary>
 public interface IGitHubRepositoryClient
 {
@@ -45,4 +48,10 @@ public interface IGitHubRepositoryClient
     Task<IReadOnlyList<string>> GetTopicsAsync(long gitHubId, CancellationToken cancellationToken);
 
     Task<IReadOnlyDictionary<string, long>> GetLanguagesAsync(long gitHubId, CancellationToken cancellationToken);
+
+    /// <summary>Public repositories of a user (bounded listing, newest-updated first).</summary>
+    Task<IReadOnlyList<GitHubRepositoryDetail>> GetUserRepositoriesAsync(
+        string username,
+        int maxRepositories,
+        CancellationToken cancellationToken);
 }

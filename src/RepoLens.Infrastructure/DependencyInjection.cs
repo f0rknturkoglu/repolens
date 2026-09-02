@@ -6,6 +6,7 @@ using RepoLens.Application.Ai;
 using RepoLens.Application.Enrichment;
 using RepoLens.Application.Discovery;
 using RepoLens.Application.IdeaValidation;
+using RepoLens.Application.Portfolio;
 using RepoLens.Application.Searching;
 using RepoLens.Infrastructure.Ai;
 using RepoLens.Infrastructure.Content;
@@ -62,6 +63,7 @@ public static class DependencyInjection
         services.AddScoped<IRepositorySearchStore, RepositorySearchStore>();
         services.AddScoped<IAnalysisStore, AnalysisStore>();
         services.AddScoped<IIdeaValidationStore, IdeaValidationStore>();
+        services.AddScoped<IPortfolioStore, PortfolioStore>();
 
         return services;
     }

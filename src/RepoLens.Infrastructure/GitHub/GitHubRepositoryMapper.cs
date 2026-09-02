@@ -23,7 +23,8 @@ internal sealed record MappedGitHubRepository(
     string? LicenseSpdx,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    DateTimeOffset? PushedAt);
+    DateTimeOffset? PushedAt,
+    IReadOnlyList<string> Topics);
 
 internal static class GitHubRepositoryMapper
 {
@@ -81,7 +82,8 @@ internal static class GitHubRepositoryMapper
             spdx,
             createdAt,
             updatedAt,
-            pushedAt);
+            pushedAt,
+            dto.Topics ?? []);
     }
 
     private static bool TryParseDate(string? value, out DateTimeOffset result)

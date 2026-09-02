@@ -69,6 +69,12 @@ public sealed class GitHubRepositoryDto
 
     [JsonPropertyName("pushed_at")]
     public string? PushedAt { get; set; }
+
+    [JsonPropertyName("topics")]
+    public List<string>? Topics { get; set; }
+
+    [JsonPropertyName("size")]
+    public long? SizeBytes { get; set; }
 }
 
 public sealed class GitHubOwnerDto

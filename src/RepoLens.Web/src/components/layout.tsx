@@ -33,6 +33,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             >
               Validate Idea
             </Link>
+            <Link
+              to="/portfolio"
+              className="rounded-md px-2 py-1 hover:bg-muted hover:text-foreground"
+            >
+              Portfolio
+            </Link>
           </nav>
         </div>
       </header>

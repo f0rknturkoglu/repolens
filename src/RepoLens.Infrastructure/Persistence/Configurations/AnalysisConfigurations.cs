@@ -4,6 +4,27 @@ using RepoLens.Domain.Analysis;
 
 namespace RepoLens.Infrastructure.Persistence.Configurations;
 
+public sealed class PortfolioAnalysisConfiguration : IEntityTypeConfiguration<Domain.Portfolio.PortfolioAnalysis>
+{
+    public void Configure(EntityTypeBuilder<Domain.Portfolio.PortfolioAnalysis> builder)
+    {
+        builder.ToTable("portfolio_analyses");
+        builder.HasKey(a => a.Id);
+        builder.Property(a => a.Id).HasColumnName("id");
+        builder.Property(a => a.Username).HasColumnName("username").HasMaxLength(64).IsRequired();
+        builder.Property(a => a.Version).HasColumnName("version").HasMaxLength(16).IsRequired();
+        builder.Property(a => a.Status).HasColumnName("status").IsRequired();
+        builder.Property(a => a.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
+        builder.Property(a => a.CompletedAtUtc).HasColumnName("completed_at_utc");
+        builder.Property(a => a.AnalyzedRepositoryCount).HasColumnName("analyzed_repository_count").IsRequired();
+        builder.Property(a => a.TotalRepositoryCount).HasColumnName("total_repository_count").IsRequired();
+        builder.Property(a => a.SignalsJson).HasColumnName("signals_json").HasColumnType("jsonb");
+        builder.Property(a => a.CoverageJson).HasColumnName("coverage_json").HasColumnType("jsonb");
+
+        builder.HasIndex(a => new { a.Username, a.CreatedAtUtc });
+    }
+}
+
 public sealed class EcosystemAnalysisConfiguration : IEntityTypeConfiguration<EcosystemAnalysis>
 {
     public void Configure(EntityTypeBuilder<EcosystemAnalysis> builder)
