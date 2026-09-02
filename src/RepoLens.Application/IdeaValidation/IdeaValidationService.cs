@@ -60,8 +60,8 @@ public sealed class IdeaValidationService(
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 
-    /// <summary>Returns a completed validation id (cached or freshly computed).</summary>
-    public async Task<IdeaValidationEntity> ValidateAsync(string idea, CancellationToken cancellationToken)
+    /// <summary>Returns a completed validation (cached or freshly computed) with the cache flag.</summary>
+    public async Task<(IdeaValidationEntity Validation, bool ServedFromCache)> ValidateAsync(string idea, CancellationToken cancellationToken)
     {
         var normalized = Normalize(idea);
         var hash = Hash(normalized);
@@ -70,7 +70,7 @@ public sealed class IdeaValidationService(
             hash, DateTimeOffset.UtcNow - CacheWindow, cancellationToken);
         if (cached is not null)
         {
-            return cached;
+            return (cached, true);
         }
 
         var validation = await ideaStore.BeginAsync(normalized, hash, DateTimeOffset.UtcNow, cancellationToken);
@@ -88,8 +88,8 @@ public sealed class IdeaValidationService(
                     JsonSerializer.Serialize(IdeaNoveltyScorer.Compute([], SearchPlanBuilder.IdeaTerms(idea), DateTimeOffset.UtcNow), JsonOptions),
                     JsonSerializer.Serialize(GapHypothesisBuilder.Build([], SearchPlanBuilder.IdeaTerms(idea)), JsonOptions),
                     cancellationToken);
-                return await ideaStore.GetAsync(validation.Id, cancellationToken)
-                    ?? throw new InvalidOperationException("Validation disappeared.");
+                return (await ideaStore.GetAsync(validation.Id, cancellationToken)
+                    ?? throw new InvalidOperationException("Validation disappeared."), false);
             }
 
             var features = await analysisStore.GetRepoFeaturesAsync(
@@ -115,8 +115,8 @@ public sealed class IdeaValidationService(
                 JsonSerializer.Serialize(gaps, JsonOptions),
                 cancellationToken);
 
-            return await ideaStore.GetAsync(validation.Id, cancellationToken)
-                ?? throw new InvalidOperationException("Validation disappeared.");
+            return (await ideaStore.GetAsync(validation.Id, cancellationToken)
+                ?? throw new InvalidOperationException("Validation disappeared."), false);
         }
         catch (Exception ex) when (ex is GitHubRateLimitExceededException
                                    or GitHubUnavailableException

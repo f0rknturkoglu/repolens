@@ -28,8 +28,7 @@ public static class IdeaValidationEndpoints
                     statusCode: StatusCodes.Status400BadRequest);
             }
 
-            var validation = await validations.ValidateAsync(request!.Idea!, cancellationToken);
-            var servedFromCache = validation.CreatedAtUtc < DateTimeOffset.UtcNow - TimeSpan.FromMinutes(2);
+            var (validation, servedFromCache) = await validations.ValidateAsync(request!.Idea!, cancellationToken);
             var response = await builder.BuildAsync(validation.Id, servedFromCache, cancellationToken);
             await AnalysisHistorySaver.SaveAsync(sessions, users, "idea", validation.Id,
                 validation.IdeaText.Length > 120 ? validation.IdeaText[..120] : validation.IdeaText,
