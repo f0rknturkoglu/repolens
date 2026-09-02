@@ -1,5 +1,5 @@
 using System.Globalization;
-using System.Text.Json;
+
 
 namespace RepoLens.Infrastructure.Searching;
 
@@ -23,12 +23,12 @@ public static class VectorText
             return [];
         }
 
-        return JsonSerializer.Deserialize<float[]>(body, JsonOptions)
-            ?? throw new FormatException("Empty vector literal.");
+        // pgvector text output is tolerant of spaces; parse manually so any
+        // float representation (fixed/scientific) is accepted.
+        return body
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(part => float.Parse(part, CultureInfo.InvariantCulture))
+            .ToArray();
     }
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
-    };
 }

@@ -126,12 +126,12 @@ public sealed class RepositorySearchStore(RepoLensDbContext db) : IRepositorySea
     {
         var sql = """
             SELECT sd.repository_id AS "RepositoryId",
-                   ts_rank_cd(sd.search_vector, plainto_tsquery('english', @q), '{0.1,0.2,0.4,1.0}') AS "Score"
+                   ts_rank_cd('{{0.1,0.2,0.4,1.0}}'::float4[], sd.search_vector, plainto_tsquery('english', @q)) AS "Score"
             FROM search_documents sd
             JOIN repositories r ON r.id = sd.repository_id
             WHERE sd.search_vector @@ plainto_tsquery('english', @q)
-              AND (@language IS NULL OR r.primary_language = @language)
-              AND (@archived IS NULL OR r.is_archived = @archived)
+              AND (@hasLanguage = FALSE OR r.primary_language = @language)
+              AND (@hasArchived = FALSE OR r.is_archived = @archived)
               AND r.stars >= @minStars
             ORDER BY "Score" DESC, sd.repository_id
             LIMIT @take
@@ -139,8 +139,10 @@ public sealed class RepositorySearchStore(RepoLensDbContext db) : IRepositorySea
         var rows = await db.Database.SqlQueryRaw<LegRow>(
             sql,
             new NpgsqlParameter("q", query),
-            new NpgsqlParameter("language", filters.Language),
-            new NpgsqlParameter("archived", filters.Archived),
+            new NpgsqlParameter("hasLanguage", filters.Language is not null),
+            new NpgsqlParameter("language", filters.Language ?? ""),
+            new NpgsqlParameter("hasArchived", filters.Archived is not null),
+            new NpgsqlParameter("archived", filters.Archived ?? false),
             new NpgsqlParameter("minStars", filters.MinStars ?? 0),
             new NpgsqlParameter("take", take)).ToListAsync(cancellationToken);
 
@@ -164,8 +166,8 @@ public sealed class RepositorySearchStore(RepoLensDbContext db) : IRepositorySea
             JOIN repositories r ON r.id = sd.repository_id
             WHERE sd.embedding IS NOT NULL
               AND sd.embedding_model = @model
-              AND (@language IS NULL OR r.primary_language = @language)
-              AND (@archived IS NULL OR r.is_archived = @archived)
+              AND (@hasLanguage = FALSE OR r.primary_language = @language)
+              AND (@hasArchived = FALSE OR r.is_archived = @archived)
               AND r.stars >= @minStars
             ORDER BY "Score" ASC, sd.repository_id
             LIMIT @take
@@ -174,8 +176,10 @@ public sealed class RepositorySearchStore(RepoLensDbContext db) : IRepositorySea
             sql,
             new NpgsqlParameter("q", literal),
             new NpgsqlParameter("model", model),
-            new NpgsqlParameter("language", filters.Language),
-            new NpgsqlParameter("archived", filters.Archived),
+            new NpgsqlParameter("hasLanguage", filters.Language is not null),
+            new NpgsqlParameter("language", filters.Language ?? ""),
+            new NpgsqlParameter("hasArchived", filters.Archived is not null),
+            new NpgsqlParameter("archived", filters.Archived ?? false),
             new NpgsqlParameter("minStars", filters.MinStars ?? 0),
             new NpgsqlParameter("take", take)).ToListAsync(cancellationToken);
 
@@ -193,7 +197,7 @@ public sealed class RepositorySearchStore(RepoLensDbContext db) : IRepositorySea
             return [];
         }
 
-        return await db.Repositories
+        var rows = await db.Repositories
             .Where(r => repositoryIds.Contains(r.Id))
             .Select(r => new SearchRepositorySource
             {
@@ -218,6 +222,20 @@ public sealed class RepositorySearchStore(RepoLensDbContext db) : IRepositorySea
                 Topics = new List<string>(),
             })
             .ToListAsync(cancellationToken);
+
+        var topics = await db.RepositoryTopics
+            .Where(t => repositoryIds.Contains(t.RepositoryId))
+            .GroupBy(t => t.RepositoryId)
+            .ToDictionaryAsync(g => g.Key, g => g.Select(t => t.Topic).OrderBy(t => t).ToList(), cancellationToken);
+        foreach (var row in rows)
+        {
+            if (topics.TryGetValue(row.Id, out var list))
+            {
+                ((List<string>)row.Topics).AddRange(list);
+            }
+        }
+
+        return rows;
     }
 
     public async Task<SearchRepositorySource?> GetRepositoryWithTopicsAsync(
@@ -260,4 +278,5 @@ public sealed class RepositorySearchStore(RepoLensDbContext db) : IRepositorySea
             Topics = topics,
         };
     }
+
 }
