@@ -48,6 +48,7 @@ namespace RepoLens.Infrastructure.Persistence.Migrations
                 + " || setweight(to_tsvector('english', coalesce(topics, '')), 'B')"
                 + " || setweight(to_tsvector('english', coalesce(description, '')), 'C')"
                 + " || setweight(to_tsvector('english', coalesce(readme_text, '')), 'D')) STORED");
+            migrationBuilder.Sql("CREATE EXTENSION IF NOT EXISTS vector;");
             migrationBuilder.Sql(
                 "ALTER TABLE search_documents ADD COLUMN embedding vector");
             migrationBuilder.Sql(
