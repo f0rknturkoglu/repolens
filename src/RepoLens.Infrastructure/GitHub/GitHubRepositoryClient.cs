@@ -122,10 +122,7 @@ public sealed class GitHubRepositoryClient(
         CancellationToken cancellationToken)
     {
         using var response = await SendAsync(gitHubId, string.Empty, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            throw GitHubHttp.ToException(response);
-        }
+        ThrowIfFailed(response);
 
         var dto = await response.Content.ReadFromJsonAsync<GitHubRepositoryDto>(JsonOptions, cancellationToken)
             ?? throw new GitHubMalformedResponseException(null);
@@ -166,10 +163,7 @@ public sealed class GitHubRepositoryClient(
             return null; // Repository has no README — not an error.
         }
 
-        if (!response.IsSuccessStatusCode)
-        {
-            throw GitHubHttp.ToException(response);
-        }
+        ThrowIfFailed(response);
 
         var raw = await response.Content.ReadAsStringAsync(cancellationToken);
         return new GitHubReadmeContent
@@ -185,10 +179,7 @@ public sealed class GitHubRepositoryClient(
         CancellationToken cancellationToken)
     {
         using var response = await SendAsync(gitHubId, "/topics", cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            throw GitHubHttp.ToException(response);
-        }
+        ThrowIfFailed(response);
 
         var dto = await response.Content.ReadFromJsonAsync<GitHubTopicsDto>(JsonOptions, cancellationToken);
         return dto?.Names ?? [];
@@ -199,13 +190,26 @@ public sealed class GitHubRepositoryClient(
         CancellationToken cancellationToken)
     {
         using var response = await SendAsync(gitHubId, "/languages", cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            throw GitHubHttp.ToException(response);
-        }
+        ThrowIfFailed(response);
 
         var map = await response.Content.ReadFromJsonAsync<Dictionary<string, long>>(JsonOptions, cancellationToken);
         return map ?? new Dictionary<string, long>();
+    }
+
+    private static void ThrowIfFailed(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var rateHeaders = GitHubHttp.ReadRateHeaders(response);
+        if ((int)response.StatusCode == 429 || GitHubHttp.IsRateLimitExhausted(response))
+        {
+            throw GitHubHttp.ToRateLimitException(rateHeaders);
+        }
+
+        throw GitHubHttp.ToException(response);
     }
 
     private async Task<HttpResponseMessage> SendAsync(
@@ -240,10 +244,7 @@ public sealed class GitHubRepositoryClient(
                 + $"/users/{Uri.EscapeDataString(username)}/repos?per_page={perPage}&page={page}&sort=updated",
                 UriKind.Absolute);
             using var response = await GitHubHttp.SendAsync(http, options.Value, uri, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                throw GitHubHttp.ToException(response);
-            }
+            ThrowIfFailed(response);
 
             var batch = await response.Content.ReadFromJsonAsync<List<GitHubRepositoryDto>>(JsonOptions, cancellationToken)
                 ?? [];

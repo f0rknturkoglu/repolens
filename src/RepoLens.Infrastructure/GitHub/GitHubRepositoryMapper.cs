@@ -58,7 +58,8 @@ internal static class GitHubRepositoryMapper
             return null;
         }
 
-        TryParseDate(dto.PushedAt, out var pushedAt);
+        DateTimeOffset? pushedAt = null;
+        if (TryParseDate(dto.PushedAt, out var parsedPushedAt)) { pushedAt = parsedPushedAt; }
         var spdx = dto.License?.SpdxId;
         if (string.Equals(spdx, "NOASSERTION", StringComparison.OrdinalIgnoreCase))
         {
