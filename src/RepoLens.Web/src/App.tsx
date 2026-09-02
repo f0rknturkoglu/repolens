@@ -4,6 +4,7 @@ import { HomePage } from '@/pages/home'
 import { DiscoverPage } from '@/pages/discover'
 import { SearchPage } from '@/pages/search'
 import { EcosystemPage } from '@/pages/ecosystem'
+import { IdeaValidationPage } from '@/pages/idea-validation'
 import { RepositoryDetailPage } from '@/pages/repository-detail'
 
 export default function App() {
@@ -31,6 +32,14 @@ export default function App() {
         element={
           <AppLayout>
             <EcosystemPage />
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/validate"
+        element={
+          <AppLayout>
+            <IdeaValidationPage />
           </AppLayout>
         }
       />

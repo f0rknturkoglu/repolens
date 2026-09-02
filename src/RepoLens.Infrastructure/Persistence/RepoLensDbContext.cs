@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RepoLens.Domain.Analysis;
 using RepoLens.Domain.Discovery;
+using RepoLens.Domain.Analysis;
 using RepoLens.Domain.Enrichment;
 using RepoLens.Domain.Searching;
 using RepoLens.Infrastructure.Persistence.Configurations;
@@ -24,6 +25,7 @@ public sealed class RepoLensDbContext(DbContextOptions<RepoLensDbContext> option
     public DbSet<EcosystemAnalysis> EcosystemAnalyses => Set<EcosystemAnalysis>();
     public DbSet<EcosystemAnalysisCandidate> EcosystemAnalysisCandidates => Set<EcosystemAnalysisCandidate>();
     public DbSet<EcosystemCluster> EcosystemClusters => Set<EcosystemCluster>();
+    public DbSet<IdeaValidation> IdeaValidations => Set<IdeaValidation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

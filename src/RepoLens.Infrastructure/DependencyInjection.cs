@@ -2,9 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RepoLens.Application.Analysis;
+using RepoLens.Application.Ai;
 using RepoLens.Application.Enrichment;
 using RepoLens.Application.Discovery;
+using RepoLens.Application.IdeaValidation;
 using RepoLens.Application.Searching;
+using RepoLens.Infrastructure.Ai;
 using RepoLens.Infrastructure.Content;
 using RepoLens.Infrastructure.Embeddings;
 using RepoLens.Infrastructure.GitHub;
@@ -36,6 +39,15 @@ public static class DependencyInjection
         services.AddOptions<EmbeddingOptions>()
             .BindConfiguration(EmbeddingOptions.SectionName);
 
+        services.AddOptions<LlmSettings>()
+            .BindConfiguration(LlmSettings.SectionName);
+
+        services.AddHttpClient<ILlmClient, HttpLlmClient>(
+            (sp, client) =>
+            {
+                client.Timeout = sp.GetRequiredService<IOptions<LlmSettings>>().Value.Timeout;
+            });
+
         services.AddHttpClient<IEmbeddingGenerator, HttpEmbeddingGenerator>(
             (sp, client) =>
             {
@@ -49,6 +61,7 @@ public static class DependencyInjection
         services.AddScoped<IEnrichmentJobStore, EnrichmentJobStore>();
         services.AddScoped<IRepositorySearchStore, RepositorySearchStore>();
         services.AddScoped<IAnalysisStore, AnalysisStore>();
+        services.AddScoped<IIdeaValidationStore, IdeaValidationStore>();
 
         return services;
     }

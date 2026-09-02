@@ -27,6 +27,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             >
               Ecosystem
             </Link>
+            <Link
+              to="/validate"
+              className="rounded-md px-2 py-1 hover:bg-muted hover:text-foreground"
+            >
+              Validate Idea
+            </Link>
           </nav>
         </div>
       </header>
