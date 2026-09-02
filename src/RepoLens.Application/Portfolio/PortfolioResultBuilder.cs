@@ -61,7 +61,7 @@ public sealed class PortfolioResultBuilder(IPortfolioStore store)
         }
 
         var signals = JsonSerializer.Deserialize<List<PortfolioResponse.SignalEvidenceDto>>(analysis.SignalsJson, JsonOptions) ?? [];
-        var entries = JsonSerializer.Deserialize<List<PortfolioResponse.CoverageEntryDto>>(analysis.CoverageJson, JsonOptions) ?? [];
+        var storedEntries = JsonSerializer.Deserialize<List<StoredCoverageEntry>>(analysis.CoverageJson, JsonOptions) ?? [];
 
         return new PortfolioResponse
         {
@@ -75,11 +75,18 @@ public sealed class PortfolioResultBuilder(IPortfolioStore store)
             CompletedAtUtc = analysis.CompletedAtUtc,
             Coverage = new PortfolioResponse.PortfolioCoverageDto
             {
-                Entries = entries,
+                Entries = storedEntries.Select(e => new PortfolioResponse.CoverageEntryDto
+                {
+                    Category = e.Category,
+                    EvidenceCount = e.EvidenceCount,
+                    Band = e.Band,
+                    Repositories = e.RepositoryFullNames,
+                }).ToList(),
             },
             Signals = signals,
         };
     }
+
 }
 
 /// <summary>Computes marginal value against the latest stored coverage.</summary>
@@ -96,12 +103,12 @@ public sealed class MarginalValueService(IPortfolioStore store)
             throw new PortfolioNotFoundException(username);
         }
 
-        var entries = JsonSerializer.Deserialize<List<PortfolioResponse.CoverageEntryDto>>(
+        var entries = JsonSerializer.Deserialize<List<StoredCoverageEntry>>(
             analysis.CoverageJson,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
 
         var coverageEntries = entries.Select(e => new CoverageEntry(
-            e.Category, e.EvidenceCount, e.Repositories, e.Band)).ToList();
+            e.Category, e.EvidenceCount, e.RepositoryFullNames, e.Band)).ToList();
         var coverage = new PortfolioCoverage(coverageEntries, []);
 
         var result = PortfolioSignals.MarginalValue(coverage, idea);
@@ -123,3 +130,11 @@ public sealed class PortfolioNotFoundException(string username) : Exception(
 {
     public string Username { get; } = username;
 }
+
+internal sealed class StoredCoverageEntry
+    {
+        public string Category { get; init; } = string.Empty;
+        public int EvidenceCount { get; init; }
+        public List<string> RepositoryFullNames { get; init; } = [];
+        public string Band { get; init; } = string.Empty;
+    }
