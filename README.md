@@ -91,3 +91,19 @@ InMemory never used in tests, deliberate ADR-documented decisions. Known
 current limitations (no Docker on a dev box → integration tests run in CI; no
 trend/history analysis yet — snapshot history exists but trend features are
 deliberately not built).
+
+## WSL-native development (recommended)
+
+The canonical development copy lives at `~/projects/repolens` inside WSL2
+(Ubuntu). Docker Engine runs natively in WSL — Docker Desktop is not used.
+User-level helpers:
+
+- `rl` — `cd ~/projects/repolens`
+- `rlup` — start containerd/docker, then `docker compose up -d` (PostgreSQL/pgvector)
+- `rldown` — stop containers, then Docker + containerd (idle = no daemon running)
+- `rltest` — backend Release build + unit + integration tests, then frontend gates
+
+Docker and containerd are disabled at boot; only `rlup` starts them.
+Integration tests run Testcontainers against the native WSL daemon.
+
+Full endpoint inventory: `docs/api-surface.md`.
