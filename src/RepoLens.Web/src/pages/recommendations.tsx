@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { ChevronDown, Compass } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -65,6 +65,10 @@ function requestRecommendations(
   })
 }
 
+function fetchRecommendationById(replayId: string, signal?: AbortSignal): Promise<RecommendationResponse> {
+  return getJson(`/api/recommendations/${replayId}`, recommendationResponseSchema, signal)
+}
+
 export function RecommendationPage() {
   const [goal, setGoal] = useState('Land a .NET backend role with database depth')
   const [interests, setInterests] = useState('databases, distributed systems')
@@ -89,6 +93,22 @@ export function RecommendationPage() {
     if (!goal.trim()) return
     mutation.mutate()
   }
+
+  useEffect(() => {
+    const replayId = new URLSearchParams(window.location.search).get('id')
+    if (replayId) {
+      fetchRecommendationById(replayId)
+        .then((data) => {
+          setResult(data)
+          setGoal(data.goal)
+          setInterests(data.interests.join(', '))
+          setUsername(data.username ?? '')
+          setDuration(data.durationWeeks ?? '')
+        })
+        .catch(() => undefined)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div>

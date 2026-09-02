@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { FlaskConical, Lightbulb, Radar } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -53,6 +53,10 @@ function validateIdea(idea: string, signal?: AbortSignal): Promise<IdeaValidatio
 
 const SAMPLE_IDEA = 'A PostgreSQL migration load-testing laboratory that replays real schema-change workloads'
 
+function fetchIdeaValidation(replayId: string, signal?: AbortSignal): Promise<IdeaValidationResponse> {
+  return getJson(`/api/analysis/idea/${replayId}`, ideaValidationResponseSchema, signal)
+}
+
 export function IdeaValidationPage() {
   const [idea, setIdea] = useState(SAMPLE_IDEA)
   const [result, setResult] = useState<IdeaValidationResponse | null>(null)
@@ -70,6 +74,14 @@ export function IdeaValidationPage() {
   }
 
   const novelty = result?.novelty
+
+  useEffect(() => {
+    const replayId = new URLSearchParams(window.location.search).get('id')
+    if (replayId) {
+      fetchIdeaValidation(replayId).then(setResult).catch(() => undefined)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div>

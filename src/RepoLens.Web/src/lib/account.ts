@@ -40,6 +40,10 @@ export function historyPath(entry: HistoryEntry): string {
       return '/ecosystem?analysis=' + entry.referenceId
     case 'portfolio':
       return '/portfolio?username=' + encodeURIComponent(entry.title)
+    case 'idea':
+      return '/validate?id=' + entry.referenceId
+    case 'recommendation':
+      return '/recommend?id=' + entry.referenceId
     default:
       return '/'
   }
