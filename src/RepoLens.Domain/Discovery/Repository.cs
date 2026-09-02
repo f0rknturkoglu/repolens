@@ -97,6 +97,9 @@ public sealed class Repository
 
     public DateTimeOffset DiscoveredAtUtc { get; private set; }
 
+    /// <summary>When the last full enrichment completed successfully; null when never enriched.</summary>
+    public DateTimeOffset? EnrichedAtUtc { get; private set; }
+
     /// <summary>Creates a repository row from freshly discovered GitHub data.</summary>
     public static Repository Create(RepositoryData data, DateTimeOffset discoveredAtUtc) =>
         new(
@@ -139,6 +142,13 @@ public sealed class Repository
         UpdatedAt = data.UpdatedAt;
         PushedAt = data.PushedAt;
         DiscoveredAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>Refreshes mutable metadata from a full repository detail fetch.</summary>
+    public void ApplyDetailMetadata(RepositoryData data, DateTimeOffset enrichedAtUtc)
+    {
+        ApplyDiscoveredMetadata(data);
+        EnrichedAtUtc = enrichedAtUtc;
     }
 
     /// <summary>

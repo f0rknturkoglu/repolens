@@ -1,16 +1,18 @@
+using RepoLens.Application.Enrichment;
 using RepoLens.Domain.Discovery;
 
 namespace RepoLens.Application.Discovery;
 
 /// <summary>
 /// Use case: search GitHub for repositories, persist them idempotently (identity
-/// = GitHub numeric id), and return the canonical stored list plus safe
-/// pagination and rate-limit metadata. Pure orchestration — no EF or HTTP
-/// knowledge here.
+/// = GitHub numeric id), auto-enqueue enrichment for repositories that have never
+/// been enriched, and return the canonical stored list plus safe pagination and
+/// rate-limit metadata. Pure orchestration — no EF or HTTP knowledge here.
 /// </summary>
 public sealed class RepositoryDiscoveryService(
     IGitHubRepositorySearchClient gitHubSearch,
-    IRepositoryStore repositoryStore)
+    IRepositoryStore repositoryStore,
+    RepositoryEnrichmentScheduler enrichmentScheduler)
 {
     public const int MinPage = 1;
     public const int MinPageSize = 1;
@@ -69,6 +71,10 @@ public sealed class RepositoryDiscoveryService(
             .ToList();
 
         await repositoryStore.UpsertAsync(repositories, cancellationToken);
+
+        // Never-enriched repositories get an enrichment job; refreshing already
+        // enriched ones is an explicit user action.
+        await enrichmentScheduler.EnqueueNewRepositoriesAsync(repositories, cancellationToken);
 
         return new DiscoveryResponse
         {

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RepoLens.Domain.Discovery;
+using RepoLens.Domain.Enrichment;
 using RepoLens.Infrastructure.Persistence.Configurations;
 
 namespace RepoLens.Infrastructure.Persistence;
@@ -12,6 +13,11 @@ namespace RepoLens.Infrastructure.Persistence;
 public sealed class RepoLensDbContext(DbContextOptions<RepoLensDbContext> options) : DbContext(options)
 {
     public DbSet<Repository> Repositories => Set<Repository>();
+    public DbSet<EnrichmentJob> EnrichmentJobs => Set<EnrichmentJob>();
+    public DbSet<RepositoryTopic> RepositoryTopics => Set<RepositoryTopic>();
+    public DbSet<RepositoryLanguage> RepositoryLanguages => Set<RepositoryLanguage>();
+    public DbSet<RepositoryReadme> RepositoryReadmes => Set<RepositoryReadme>();
+    public DbSet<RepositorySnapshot> RepositorySnapshots => Set<RepositorySnapshot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

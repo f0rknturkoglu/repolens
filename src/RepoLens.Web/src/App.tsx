@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout'
 import { HomePage } from '@/pages/home'
 import { DiscoverPage } from '@/pages/discover'
+import { RepositoryDetailPage } from '@/pages/repository-detail'
 
 export default function App() {
   return (
@@ -12,6 +13,14 @@ export default function App() {
         element={
           <AppLayout>
             <DiscoverPage />
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/repositories/:repositoryId"
+        element={
+          <AppLayout>
+            <RepositoryDetailPage />
           </AppLayout>
         }
       />

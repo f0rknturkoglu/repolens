@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Archive, Code2, Search, Star } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Archive, Code2, ExternalLink, Search, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout'
@@ -32,7 +33,7 @@ export function DiscoverPage() {
     <div>
       <PageHeader
         title="Explore GitHub"
-        subtitle="Search GitHub repositories. Results are stored locally by RepoLens for later analysis."
+        subtitle="Search GitHub repositories. Results are stored locally by RepoLens for enrichment and later analysis."
       />
 
       <form
@@ -140,13 +141,16 @@ function StateContent({
             className="rounded-lg border bg-background p-4 transition-colors hover:bg-muted/30"
           >
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <a
-                href={repo.htmlUrl}
-                target="_blank"
-                rel="noreferrer"
+              <Link
+                to={`/repositories/${repo.id}`}
                 className="font-medium hover:underline"
               >
                 {repo.fullName}
+              </Link>
+              <a href={repo.htmlUrl} target="_blank" rel="noreferrer" aria-label="Open on GitHub">
+                <Badge variant="ghost" className="gap-1 text-muted-foreground">
+                  <ExternalLink data-slot="icon" />
+                </Badge>
               </a>
               {repo.isArchived && (
                 <Badge variant="secondary" className="gap-1">

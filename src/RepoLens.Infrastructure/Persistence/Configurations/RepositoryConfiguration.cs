@@ -36,6 +36,7 @@ public sealed class RepositoryConfiguration : IEntityTypeConfiguration<Repositor
         builder.Property(r => r.UpdatedAt).HasColumnName("updated_at").IsRequired();
         builder.Property(r => r.PushedAt).HasColumnName("pushed_at");
         builder.Property(r => r.DiscoveredAtUtc).HasColumnName("discovered_at_utc").IsRequired();
+        builder.Property(r => r.EnrichedAtUtc).HasColumnName("enriched_at_utc");
 
         builder.HasIndex(r => r.GitHubId).IsUnique();
         builder.HasIndex(r => r.FullName).IsUnique();
