@@ -1,48 +1,78 @@
 # Architecture
 
-## Current shape (walking skeleton)
-
-A modular monolith: one ASP.NET Core API and one React SPA, sharing a single
-PostgreSQL database.
+A modular monolith: one ASP.NET Core API and one React SPA sharing a single
+PostgreSQL database (+ pgvector).
 
 ```mermaid
 flowchart LR
-    B[Browser] --> W[React SPA - RepoLens.Web]
-    W -- "/health (JSON over HTTP)" --> A[ASP.NET Core API - RepoLens.Api]
-    A -- "EF Core / Npgsql" --> P[(PostgreSQL + pgvector)]
+    B[Browser] --> W[React SPA]
+    W -- "/api, /health" --> A[ASP.NET Core API]
+    A -- "EF Core / Npgsql / raw SQL" --> P[(PostgreSQL + pgvector)]
+    A -- "GitHub REST (adapter)" --> G[GitHub API]
+    A -- "OpenAI-compatible (optional)" --> E[Embeddings / LLM]
 ```
 
-### Components
+## Layers
 
 | Path | Responsibility |
 | --- | --- |
-| `src/RepoLens.Api` | Composition root: hosting, configuration, logging, OpenTelemetry, health checks. Currently the only endpoint is `GET /health`, which returns `200 Healthy` only when the API can reach PostgreSQL. |
-| `src/RepoLens.Infrastructure` | Persistence: EF Core `RepoLensDbContext` wired to PostgreSQL via Npgsql. Domain tables will be added here as features land. |
-| `src/RepoLens.Application` | Intentionally empty. Future home of feature modules (`Discovery`, `Analysis`, `Recommendation`, `Portfolio`) — feature-oriented, no business logic yet. |
-| `src/RepoLens.Domain` | Intentionally empty. Future home of domain entities. |
-| `src/RepoLens.Web` | React + TypeScript + Vite SPA. Shows the API/database status by polling `/health` through TanStack Query. |
+| `src/RepoLens.Api` | Composition root: hosting, endpoints per feature, typed error mapping (ProblemDetails, raw GitHub text never leaks), rate limiting, session auth, background workers, migrations on startup. |
+| `src/RepoLens.Application` | Use cases + pure scoring/similarity/clustering logic, ports (interfaces) for GitHub, stores, embeddings, LLM. Feature folders: Discovery, Enrichment, Searching, Analysis (ecosystem), IdeaValidation, Portfolio, Recommendation, Ai, Identity. No EF, no HTTP. |
+| `src/RepoLens.Domain` | Entities with guarded state transitions; EF-agnostic. |
+| `src/RepoLens.Infrastructure` | GitHub HTTP adapters (search, enrichment, user listing, OAuth), OpenAI-compatible embedding + LLM clients, Markdig README normalization, EF Core mappings + stores (raw SQL for pgvector/tsvector legs and job claims). |
+| `src/RepoLens.Web` | React 19 + TS + Vite SPA (TanStack Query, React Router, Tailwind v4, shadcn/ui, Zod at the network boundary). |
 
-### Cross-cutting choices
+## Product flows
 
-- **Logging**: structured (JSON) console output outside Development; human-readable console in Development. OpenTelemetry captures the same events for export.
-- **OpenTelemetry**: ASP.NET Core and HttpClient instrumentation are registered. Nothing is exported until `OTEL_EXPORTER_OTLP_ENDPOINT` is set — no collector is required locally.
-- **Configuration**: `appsettings.json` + `appsettings.{Environment}.json`, overridable via environment variables (`ConnectionStrings__DefaultConnection`). Development credentials are development-only values, never real secrets.
+1. **Explore GitHub** — `GET /api/discovery/repositories` searches GitHub,
+   normalizes, persists repositories idempotently (identity = GitHub numeric
+   id), auto-enqueues enrichment for never-enriched repos.
+2. **Repository detail + enrichment** — `GET /api/repositories/{id}` and
+   `POST /api/repositories/{id}/refresh`; the durable PostgreSQL-backed worker
+   enriches metadata/README/topics/languages, snapshots metrics, retries with
+   bounded backoff, and survives restarts.
+3. **Hybrid search + similarity** — `GET /api/search/repositories`
+   (FTS + vector, RRF) and `GET /api/repositories/{id}/similar`; documents are
+   indexed after enrichment, embeddings backfilled on a budget.
+4. **Ecosystem analysis** — `POST /api/analysis/ecosystem`: deterministic query
+   variants → bounded candidates → similarity-graph clusters → metrics +
+   evidence snapshot (replay via `GET /api/analysis/ecosystem/{id}`).
+5. **Idea validation** — `POST /api/analysis/idea`: search plan (LLM-optional
+   with deterministic fallback), novelty-v1 scoring, competitors, gaps;
+   PostgreSQL-backed 24h cache keyed by normalized idea hash.
+6. **Portfolio intelligence** — `GET /api/portfolio/{username}` (signals +
+   coverage) and `POST /api/portfolio/{username}/marginal`; public metadata
+   only.
+7. **Recommendations** — `POST /api/recommendations`: LLM/fallback candidates →
+   per-candidate GitHub validation → rec-v1 ranking with diversity +
+   explainability; request-hash cache.
+8. **Account & history** — optional GitHub OAuth with signed HTTP-only session
+   cookies (off until configured); signed-in analyses are saved to history.
+
+## Cross-cutting
+
+- **Persistence**: single EF Core `RepoLensDbContext`; migrations applied at
+  startup; jsonb snapshots keep analysis reports reproducible; tsvector/vector
+  columns are migration-managed (raw SQL).
+- **Errors**: typed exceptions → stable ProblemDetails codes
+  (`github_rate_limited` 429 with Retry-After, `upstream_error` 502,
+  `not_found` 404, …).
+- **Jobs**: PostgreSQL job table; `FOR UPDATE SKIP LOCKED` claims; crash
+  recovery sweep; partial unique index (one active job per repository).
+- **Rate limiting**: ASP.NET Core rate limiter — global 300 req/min per client,
+  `expensive` 6 req/min on analyses/refresh/recommendations.
+- **Observability**: structured JSON logs (Development: console),
+  OpenTelemetry tracing/metrics (export opt-in via
+  `OTEL_EXPORTER_OTLP_ENDPOINT`); custom meters for enrichment job outcomes +
+  analysis durations.
+- **Security**: env-supplied secrets only; same-origin cookies HttpOnly +
+  SameSite=Lax (+ Secure outside Development); OAuth minimum scope; no CORS
+  surface beyond defaults.
 
 ## Test layout
 
-- `tests/RepoLens.UnitTests` — pure-logic unit tests (none yet; no domain logic exists).
-- `tests/RepoLens.IntegrationTests` — Testcontainers-backed tests against a real
-  `pgvector/pgvector` PostgreSQL container; the API is hosted via
-  `WebApplicationFactory`; WireMock.Net is available for external HTTP mocks.
-
-## Future direction (not implemented)
-
-When features land, the monolith will grow, not split:
-
-- **Background workers** for crawling/indexing GitHub data,
-- a **GitHub adapter** (external API access at the edge),
-- an **analysis pipeline** for clustering/novelty/portfolio analysis using
-  pgvector similarity in PostgreSQL.
-
-If a genuinely independent subsystem with different scaling needs emerges later,
-it can be extracted from the monolith — that decision belongs in an ADR.
+- Unit tests: pure logic — normalization, job transitions, RRF, novelty,
+  clustering, scoring, taxonomy, plans.
+- Integration tests: real Testcontainers PostgreSQL + WireMock.Net GitHub/LLM —
+  adapter behavior, persistence constraints, retrieval, API flows incl. cache
+  paths and error mapping. CI always runs them.

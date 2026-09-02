@@ -1,3 +1,5 @@
+using RepoLens.Api.Identity;
+using RepoLens.Application.Identity;
 using RepoLens.Application.IdeaValidation;
 using RepoLens.Application.Portfolio;
 
@@ -14,6 +16,8 @@ public static class PortfolioEndpoints
             string username,
             PortfolioAnalysisService analyses,
             PortfolioResultBuilder builder,
+            AuthSessionService sessions,
+            IUserStore users,
             CancellationToken cancellationToken) =>
         {
             var errors = PortfolioAnalysisService.ValidateUsername(username);
@@ -27,6 +31,7 @@ public static class PortfolioEndpoints
 
             var analysis = await analyses.AnalyzeAsync(username, cancellationToken);
             var response = await builder.BuildAsync(analysis.Id, cancellationToken);
+            await AnalysisHistorySaver.SaveAsync(sessions, users, "portfolio", analysis.Id, analysis.Username, analysis.Status.ToString(), analysis.Version, cancellationToken);
             return response is null ? Results.NotFound() : Results.Ok(response);
         });
 
@@ -58,7 +63,7 @@ public static class PortfolioEndpoints
             await analyses.AnalyzeAsync(username, cancellationToken);
             var result = await marginal.ComputeAsync(username, request!.Idea!, cancellationToken);
             return Results.Ok(result);
-        });
+        }).RequireRateLimiting("expensive");
 
         return routes;
     }

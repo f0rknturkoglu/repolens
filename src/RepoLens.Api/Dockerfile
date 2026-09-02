@@ -21,4 +21,13 @@ WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
+
+# curl is needed for the HEALTHCHECK below.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -fs http://localhost:8080/health || exit 1
+
 ENTRYPOINT ["dotnet", "RepoLens.Api.dll"]

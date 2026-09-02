@@ -72,4 +72,7 @@ public interface IEnrichmentJobStore
 
     /// <summary>True when the repository has an active (pending/processing) job.</summary>
     Task<bool> HasActiveJobAsync(long repositoryId, CancellationToken cancellationToken);
+
+    /// <summary>Scheduled refresh: enqueues never-enriched or stale repositories (bounded).</summary>
+    Task<int> EnqueueStaleForRefreshAsync(TimeSpan staleEnrichmentAge, int limit, CancellationToken cancellationToken);
 }

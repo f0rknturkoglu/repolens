@@ -1,3 +1,5 @@
+using RepoLens.Api.Identity;
+using RepoLens.Application.Identity;
 using RepoLens.Application.Recommendation;
 
 namespace RepoLens.Api.Endpoints;
@@ -12,6 +14,8 @@ public static class RecommendationEndpoints
         group.MapPost("", async (
             RecommendationRequestDto request,
             RecommendationService recommendations,
+            AuthSessionService sessions,
+            IUserStore users,
             CancellationToken cancellationToken) =>
         {
             var input = new RecommendationInput(
@@ -29,8 +33,11 @@ public static class RecommendationEndpoints
             }
 
             var response = await recommendations.RecommendAsync(input, cancellationToken);
+            await AnalysisHistorySaver.SaveAsync(sessions, users, "recommendation", response.Id,
+                response.Goal.Length > 120 ? response.Goal[..120] : response.Goal,
+                response.Status, response.Version, cancellationToken);
             return Results.Ok(response);
-        });
+        }).RequireRateLimiting("expensive");
 
         group.MapGet("/{requestId:long}", async (
             long requestId,

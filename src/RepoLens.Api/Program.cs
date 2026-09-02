@@ -3,8 +3,11 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Microsoft.AspNetCore.RateLimiting;
 using RepoLens.Api.Errors;
+using RepoLens.Application.Observability;
 using RepoLens.Api.Endpoints;
+using RepoLens.Api.Identity;
 using RepoLens.Api.Startup;
 using RepoLens.Api.Workers;
 using RepoLens.Application;
@@ -31,9 +34,6 @@ else
 }
 
 // --- Database: single PostgreSQL instance. ---
-// Resolution order: environment variable ConnectionStrings__DefaultConnection,
-// then appsettings.json / appsettings.{Environment}.json. Failing fast here beats
-// failing at the first request with an opaque Npgsql error.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
         "Connection string 'DefaultConnection' is not configured. "
@@ -54,9 +54,37 @@ builder.Services.AddHealthChecks()
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-// --- OpenTelemetry: ASP.NET Core and HttpClient instrumentation. ---
-// Export is opt-in: set OTEL_EXPORTER_OTLP_ENDPOINT to send traces/metrics to a
-// collector (e.g. a local OTLP endpoint). Nothing is exported until then.
+// --- Optional GitHub OAuth + signed session cookies (feature off until Auth:CookieKey set). ---
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton(builder.Configuration
+    .GetSection(AuthCookieSettings.SectionName)
+    .Get<AuthCookieSettings>() ?? new AuthCookieSettings());
+builder.Services.AddScoped<AuthSessionService>();
+
+// --- Rate limiting: cheap global default; "expensive" policy protects costly
+// analysis/refresh endpoints (6/min per client). ---
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(
+        context => System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            ClientKey(context),
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 300,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1),
+            }));
+    options.AddFixedWindowLimiter("expensive", policy =>
+    {
+        policy.PermitLimit = 6;
+        policy.Window = TimeSpan.FromMinutes(1);
+        policy.QueueLimit = 0;
+    });
+});
+
+// --- OpenTelemetry (export opt-in via OTEL_EXPORTER_OTLP_ENDPOINT). ---
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService("RepoLens.Api"))
     .WithTracing(tracing => tracing
@@ -64,7 +92,8 @@ builder.Services.AddOpenTelemetry()
         .AddHttpClientInstrumentation())
     .WithMetrics(metrics => metrics
         .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation());
+        .AddHttpClientInstrumentation()
+        .AddMeter(RepoLensMetrics.MeterName));
 
 if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
 {
@@ -80,13 +109,24 @@ builder.Services.AddHostedService<EnrichmentWorker>();
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseRateLimiter();
 
 app.MapHealthChecks("/health");
 app.MapDiscoveryEndpoints();
 app.MapRepositoryEndpoints();
 app.MapSearchEndpoints();
+app.MapAnalysisEndpoints();
+app.MapIdeaValidationEndpoints();
+app.MapPortfolioEndpoints();
+app.MapRecommendationEndpoints();
+app.MapAuthEndpoints();
 
 app.Run();
+
+static string ClientKey(HttpContext context) =>
+    context.Connection.RemoteIpAddress?.ToString()
+    ?? context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+    ?? "anonymous";
 
 /// <summary>Entry-point type; public so integration tests can host the app via WebApplicationFactory.</summary>
 public partial class Program;

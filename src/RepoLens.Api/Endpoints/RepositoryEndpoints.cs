@@ -36,7 +36,7 @@ public static class RepositoryEndpoints
                 EnqueueOutcome.RecentlyRefreshed => Results.StatusCode(StatusCodes.Status429TooManyRequests),
                 _ => Results.NotFound(),
             };
-        });
+        }).RequireRateLimiting("expensive");
 
         return routes;
     }

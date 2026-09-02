@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Layers, Radar } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -68,6 +68,8 @@ function runEcosystemAnalysis(query: string, signal?: AbortSignal): Promise<Anal
 }
 
 export function EcosystemPage() {
+  const params = new URLSearchParams(window.location.search)
+  const analysisId = params.get("analysis")
   const [queryInput, setQueryInput] = useState('')
   const [result, setResult] = useState<AnalysisResponse | null>(null)
 
@@ -75,6 +77,13 @@ export function EcosystemPage() {
     mutationFn: (query: string) => runEcosystemAnalysis(query),
     onSuccess: (data) => setResult(data),
   })
+
+  useEffect(() => {
+    if (analysisId) {
+      getJson(`/api/analysis/ecosystem/${analysisId}`, analysisResponseSchema).then(setResult).catch(() => undefined)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysisId])
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()

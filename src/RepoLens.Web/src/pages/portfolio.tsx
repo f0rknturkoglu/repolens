@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Briefcase, Search, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -61,7 +61,9 @@ function computeMarginal(username: string, idea: string, signal?: AbortSignal): 
 const SAMPLE_IDEA = 'A PostgreSQL migration load-testing laboratory'
 
 export function PortfolioPage() {
-  const [username, setUsername] = useState('')
+  const params = new URLSearchParams(window.location.search)
+  const preseed = params.get("username") ?? ""
+  const [username, setUsername] = useState(preseed)
   const [portfolio, setPortfolio] = useState<PortfolioResponse | null>(null)
   const [marginalIdea, setMarginalIdea] = useState(SAMPLE_IDEA)
   const [marginal, setMarginal] = useState<MarginalResponse | null>(null)
@@ -73,6 +75,13 @@ export function PortfolioPage() {
       setMarginal(null)
     },
   })
+
+  useEffect(() => {
+    if (preseed && username === preseed && !portfolio && !analyze.isPending && !analyze.isError) {
+      analyze.mutate(preseed)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preseed, username, portfolio, analyze.isPending, analyze.isError])
 
   const margin = useMutation({
     mutationFn: (idea: string) => computeMarginal(analyze.variables ?? username, idea),

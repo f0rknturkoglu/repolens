@@ -68,5 +68,34 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Lint
+        run: npm run lint
+
       - name: Production build
         run: npm run build
+
+  docker-images:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/RepoLens.Api/Dockerfile
+          push: false
+          tags: repolens/api:ci
+
+      - name: Build Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/RepoLens.Web/Dockerfile
+          push: false
+          tags: repolens/web:ci

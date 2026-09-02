@@ -31,4 +31,7 @@ public sealed class EnrichmentSettings
 
     /// <summary>README content stored per repository (raw characters); longer content is truncated.</summary>
     public int ReadmeMaxLength { get; set; } = 1_000_000;
+
+    /// <summary>Scheduled refresh: repositories enriched longer ago than this are re-queued (bounded).</summary>
+    public TimeSpan StaleEnrichmentAge { get; set; } = TimeSpan.FromDays(7);
 }

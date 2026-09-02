@@ -198,6 +198,23 @@ public sealed class EnrichmentJobStore(RepoLensDbContext db) : IEnrichmentJobSto
                  && (j.Status == EnrichmentJobStatus.Pending || j.Status == EnrichmentJobStatus.Processing),
             cancellationToken);
 
+    public async Task<int> EnqueueStaleForRefreshAsync(
+        TimeSpan staleEnrichmentAge, int limit, CancellationToken cancellationToken)
+    {
+        var cutoff = DateTimeOffset.UtcNow - staleEnrichmentAge;
+        var stale = await db.Repositories
+            .Where(r => r.EnrichedAtUtc == null || r.EnrichedAtUtc <= cutoff)
+            .Where(r => !db.EnrichmentJobs.Any(j => j.RepositoryId == r.Id
+                && (j.Status == EnrichmentJobStatus.Pending
+                    || j.Status == EnrichmentJobStatus.Processing
+                    || j.Status == EnrichmentJobStatus.Failed)))
+            .OrderBy(r => r.EnrichedAtUtc)
+            .Take(limit)
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken);
+        return await TryEnqueueManyAsync(stale, cancellationToken);
+    }
+
     private void SynchronizeTopics(long repositoryId, IReadOnlyList<string> topics, DateTimeOffset now)
     {
         var incoming = topics.Select(t => t.ToLowerInvariant()).ToHashSet();

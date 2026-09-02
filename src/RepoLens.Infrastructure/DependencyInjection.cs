@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RepoLens.Application.Analysis;
 using RepoLens.Application.Ai;
+using RepoLens.Application.Identity;
 using RepoLens.Application.Enrichment;
 using RepoLens.Application.Discovery;
 using RepoLens.Application.IdeaValidation;
@@ -32,6 +33,15 @@ public static class DependencyInjection
         services.AddOptions<GitHubOptions>()
             .BindConfiguration(GitHubOptions.SectionName)
             .Validate(o => !string.IsNullOrWhiteSpace(o.BaseUrl), "GitHub:BaseUrl must be configured.");
+
+        services.AddOptions<GitHubOAuthSettings>()
+            .BindConfiguration(GitHubOAuthSettings.SectionName);
+
+        services.AddHttpClient<IGitHubOAuthClient, Infrastructure.Identity.GitHubOAuthClient>(
+            (sp, client) =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
 
         services.AddHttpClient<IGitHubRepositorySearchClient, GitHubRepositorySearchClient>(
             (sp, client) => ConfigureGitHubClient(sp, client));
@@ -66,6 +76,7 @@ public static class DependencyInjection
         services.AddScoped<IIdeaValidationStore, IdeaValidationStore>();
         services.AddScoped<IPortfolioStore, PortfolioStore>();
         services.AddScoped<IRecommendationStore, RecommendationStore>();
+        services.AddScoped<IUserStore, UserStore>();
 
         return services;
     }

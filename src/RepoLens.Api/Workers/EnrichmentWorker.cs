@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using RepoLens.Application.Enrichment;
+using RepoLens.Application.Observability;
 using RepoLens.Application.Searching;
 
 namespace RepoLens.Api.Workers;
@@ -65,9 +67,18 @@ public sealed class EnrichmentWorker(
             logger.LogWarning("Recovered {Count} interrupted enrichment job(s).", recovered);
         }
 
+        // Bounded scheduled refresh: repositories whose enrichment is older than
+        // the stale threshold get re-enriched (capped per cycle).
+        var refreshed = await jobs.EnqueueStaleForRefreshAsync(settings.StaleEnrichmentAge, 5, stoppingToken);
+        if (refreshed > 0)
+        {
+            logger.LogInformation("Scheduled refresh queued {Count} stale repositor(ies).", refreshed);
+        }
+
         var claimed = await jobs.ClaimDueAsync(settings.BatchSize, stoppingToken);
         foreach (var job in claimed)
         {
+            var stopwatch = Stopwatch.StartNew();
             logger.LogInformation(
                 "Processing enrichment job {JobId} (attempt {Attempt}) for repository {RepositoryId}.",
                 job.Id, job.Attempts, job.RepositoryId);
@@ -80,6 +91,19 @@ public sealed class EnrichmentWorker(
                 logger.LogInformation(
                     "Indexed repository {RepositoryId} for search ({Outcome}).", job.RepositoryId, outcome);
             }
+
+            stopwatch.Stop();
+            var final = await jobs.GetLatestJobAsync(job.RepositoryId, stoppingToken);
+            if (final?.Status == RepoLens.Domain.Enrichment.EnrichmentJobStatus.Completed)
+            {
+                RepoLensMetrics.EnrichmentJobsCompleted.Add(1);
+            }
+            else if (final?.Status == RepoLens.Domain.Enrichment.EnrichmentJobStatus.Failed)
+            {
+                RepoLensMetrics.EnrichmentJobsFailed.Add(1);
+            }
+
+            RepoLensMetrics.EnrichmentJobDuration.Record(stopwatch.Elapsed.TotalSeconds);
         }
 
         // Bounded embedding backfill for previously indexed documents that lost

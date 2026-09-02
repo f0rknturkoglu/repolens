@@ -1,140 +1,93 @@
 # RepoLens
 
-**GitHub Ecosystem Intelligence** — a developer intelligence platform that finds
-similar projects on GitHub, analyzes repository clusters, and evaluates how
-saturated (or original) a project idea is. Planned future capabilities include
-portfolio gap analysis and personalized project recommendations.
+**GitHub Ecosystem Intelligence** — search GitHub, build your own index of what
+you care about, and get evidence-backed answers: ecosystem landscapes, how
+saturated a project idea is, portfolio signals, and project recommendations.
 
-## Current status
+Reads only public GitHub data. All scores are deterministic and versioned
+(`docs/scoring.md`, `docs/decisions/`); LLMs never compute scores and every LLM
+path has a deterministic fallback.
 
-**Walking skeleton / infrastructure only.** No product features are implemented
-yet. The repository proves the development chain
-**browser → React → ASP.NET Core → PostgreSQL + pgvector**:
+## Flows
 
-- `GET /health` on the API returns `200 Healthy` only when the API can reach
-  PostgreSQL (the endpoint includes a database health check).
-- The SPA polls `/health` via TanStack Query and shows **API Status: Healthy /
-  Unavailable**.
-- Integration tests run against a real PostgreSQL container (Testcontainers,
-  `pgvector/pgvector:pg17` image) and verify the pgvector extension works.
+| Flow | Path | API |
+| --- | --- | --- |
+| Explore GitHub | `/discover` | `GET /api/discovery/repositories` |
+| Repository detail / enrichment | `/repositories/:id` | `GET/POST /api/repositories/{id}[/refresh]` |
+| Search RepoLens (hybrid) | `/search` | `GET /api/search/repositories` |
+| Similar projects | detail page | `GET /api/repositories/{id}/similar` |
+| Ecosystem analysis | `/ecosystem` | `POST /api/analysis/ecosystem`, `GET /api/analysis/ecosystem/{id}` |
+| Validate an Idea | `/validate` | `POST /api/analysis/idea`, `GET /api/analysis/idea/{id}` |
+| Analyze Portfolio | `/portfolio` | `GET /api/portfolio/{username}`, `POST /api/portfolio/{username}/marginal` |
+| Find My Next Project | `/recommend` | `POST /api/recommendations`, `GET /api/recommendations/{id}` |
+| Account & history | `/account` | `/api/auth/*` (optional OAuth) |
 
 ## Stack
 
 | Layer | Tech |
 | --- | --- |
-| Backend | .NET 10 / C# 14, ASP.NET Core Web API, EF Core 10, Npgsql |
-| Database | PostgreSQL + pgvector (Docker) |
-| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, Tailwind CSS v4, shadcn/ui, Zod |
-| Testing | xUnit, Testcontainers for .NET, WireMock.Net |
-| Infra | Docker Compose, GitHub Actions CI |
-| Observability | Structured logging (JSON console), OpenTelemetry (ASP.NET Core + HttpClient instrumentation) |
+| Backend | .NET 10 / C# 14, ASP.NET Core minimal APIs, EF Core 10, Npgsql, OpenTelemetry |
+| Database | PostgreSQL + pgvector (Docker); tsvector FTS + exact vector search |
+| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, Tailwind v4, shadcn/ui, Zod |
+| Testing | xUnit, Testcontainers PostgreSQL, WireMock.Net (GitHub/LLM), GitHub Actions CI |
+| Optional external | OpenAI-compatible embeddings/chat endpoints; GitHub OAuth |
 
 ## Prerequisites
 
-- [.NET SDK 10](https://dotnet.microsoft.com/download) (see `global.json`)
+- [.NET SDK 10](https://dotnet.microsoft.com/download) (`global.json`)
 - Node.js 24 + npm
-- Docker (Docker Desktop or equivalent) — required for the database and for the
-  integration tests; not required to *build* the code
-
-## Project structure
-
-```
-repolens/
-├── src/
-│   ├── RepoLens.Api/            # ASP.NET Core API (composition root, /health)
-│   ├── RepoLens.Application/    # future feature modules (Discovery, Analysis, …) — empty
-│   ├── RepoLens.Domain/         # future domain entities — empty
-│   ├── RepoLens.Infrastructure/ # EF Core DbContext + DI wiring
-│   └── RepoLens.Web/            # React + TypeScript + Vite SPA
-├── tests/
-│   ├── RepoLens.UnitTests/      # pure-logic unit tests (empty: no domain logic yet)
-│   └── RepoLens.IntegrationTests/# Testcontainers PostgreSQL + pgvector tests
-├── docs/
-│   ├── product.md
-│   ├── architecture.md
-│   └── decisions/               # ADRs
-├── .github/workflows/ci.yml
-├── AGENTS.md
-├── docker-compose.yml
-├── .editorconfig
-├── global.json
-└── RepoLens.sln
-```
+- Docker (Docker Desktop or equivalent) — required for the database and
+  integration tests, not for building
 
 ## Development
 
-Two supported workflows:
-
-### 1. Database in Docker, apps on the host (recommended for daily work)
-
 ```bash
-# Start PostgreSQL + pgvector (development-only credentials, port 5432)
-docker compose up -d postgres
+docker compose up -d postgres                     # PostgreSQL + pgvector
+dotnet run --project src/RepoLens.Api             # http://localhost:5190/health
+cd src/RepoLens.Web && npm install && npm run dev  # http://localhost:5173
 ```
 
-Backend (from the repository root):
+Configuration lives in `appsettings.json` + environment variables:
 
-```bash
-dotnet run --project src/RepoLens.Api
-# → http://localhost:5190/health
-```
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `ConnectionStrings__DefaultConnection` | PostgreSQL | dev values in `appsettings.Development.json` |
+| `GitHub__Token` | optional unauthenticated→authenticated rate limits | none |
+| `Embedding__Model` / `Embedding__ApiKey` | enable hybrid/similar (OpenAI-compatible `Embedding__BaseUrl`) | off |
+| `Llm__Model` / `Llm__ApiKey` | enable LLM-assisted plans/ideas (OpenAI-compatible `Llm__BaseUrl`) | off |
+| `Auth__CookieKey` + `GitHub__OAuthClientId`/`GitHub__OAuthClientSecret` + `GitHub__OAuth__CallbackUrl` | GitHub sign-in + history | off |
 
-Frontend (in `src/RepoLens.Web`):
-
-```bash
-npm install
-npm run dev
-# → http://localhost:5173  (Vite proxies /health to the API on :5190)
-```
-
-The browser should show **API Status: Healthy**.
-
-### 2. Full stack in Docker
-
-```bash
-docker compose --profile full up --build
-# → http://localhost:8080 (nginx serves the SPA and proxies /health and /api to the API)
-```
-
-### Configuration
-
-Development defaults live in `src/RepoLens.Api/appsettings.Development.json`
-(database `repolens`, user `repolens`, password `repolens_dev_password` on
-`localhost:5432`). **These are development-only values** — override anything via
-environment variables, e.g.:
-
-```bash
-ConnectionStrings__DefaultConnection="Host=…;Database=…;Username=…;Password=…"
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317   # opt-in OpenTelemetry export
-```
-
-No real secrets are committed.
+No real secrets are committed; every optional capability degrades gracefully
+(keyword-only search, deterministic fallback plans, anonymous use).
 
 ## Tests
 
 ```bash
-# Backend: build + tests
 dotnet build RepoLens.sln
 dotnet test tests/RepoLens.UnitTests
-dotnet test tests/RepoLens.IntegrationTests   # requires Docker; starts a pgvector container
-
-# Frontend
-cd src/RepoLens.Web
-npm run typecheck
-npm run build
-npm run lint
+dotnet test tests/RepoLens.IntegrationTests   # requires Docker (Testcontainers)
+cd src/RepoLens.Web && npm run typecheck && npm run build && npm run lint
 ```
 
-Testing rules:
+Integration tests never call the real GitHub API — WireMock.Net stands in for
+GitHub and the LLM provider, Testcontainers runs real PostgreSQL+pgvector.
+CI runs all of the above plus a Docker image build.
 
-- pure logic → unit tests; database/external behavior → integration tests;
-- EF Core InMemory is never used — integration tests run on real PostgreSQL via
-  Testcontainers;
-- external HTTP APIs (future GitHub adapter) are mocked with WireMock.Net.
+## Documentation
+
+- `docs/architecture.md` — layers, flows, cross-cutting decisions
+- `docs/product.md` — product language and capability map
+- `docs/scoring.md` — novelty / marginal value / recommendation formulas
+- `docs/search-ranking.md` — FTS weights, RRF, similarity
+- `docs/analysis-limitations.md` — what claims are and are not made
+- `docs/decisions/` — ADRs: 001 initial architecture, 002 clustering
+  (why not Python/HDBSCAN/ML.NET), 003 search/scoring/LLM boundaries
 
 ## Development principles
 
-See `AGENTS.md` for the full rules. In short: modular monolith, feature-oriented
-growth, single PostgreSQL database, no speculative abstractions
-(`GenericRepository<T>`, CQRS/MediatR, event buses, extra infrastructure), and
-deliberate ADR-documented architectural decisions.
+`AGENTS.md`: modular monolith, feature-oriented growth, single PostgreSQL, no
+speculative abstractions (no `GenericRepository<T>`/MediatR/event buses), EF
+InMemory never used in tests, deliberate ADR-documented decisions. Known
+current limitations (no Docker on a dev box → integration tests run in CI; no
+trend/history analysis yet — snapshot history exists but trend features are
+deliberately not built).

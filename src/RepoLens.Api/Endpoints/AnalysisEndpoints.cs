@@ -1,4 +1,6 @@
+using RepoLens.Api.Identity;
 using RepoLens.Application.Analysis;
+using RepoLens.Application.Identity;
 
 namespace RepoLens.Api.Endpoints;
 
@@ -13,6 +15,8 @@ public static class AnalysisEndpoints
             EcosystemRequest request,
             EcosystemAnalysisService analyses,
             EcosystemAnalysisResultBuilder builder,
+            AuthSessionService sessions,
+            IUserStore users,
             CancellationToken cancellationToken) =>
         {
             var errors = EcosystemAnalysisService.ValidateQuery(request?.Query);
@@ -26,8 +30,11 @@ public static class AnalysisEndpoints
 
             var analysis = await analyses.AnalyzeAsync(request!.Query, cancellationToken);
             var response = await builder.BuildAsync(analysis.Id, cancellationToken);
+            await AnalysisHistorySaver.SaveAsync(
+                sessions, users, "ecosystem", analysis.Id, analysis.Query,
+                analysis.Status.ToString(), analysis.Version, cancellationToken);
             return Results.Ok(response);
-        });
+        }).RequireRateLimiting("expensive");
 
         group.MapGet("/ecosystem/{analysisId:long}", async (
             long analysisId,

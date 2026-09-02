@@ -1,3 +1,5 @@
+using RepoLens.Api.Identity;
+using RepoLens.Application.Identity;
 using RepoLens.Application.IdeaValidation;
 
 namespace RepoLens.Api.Endpoints;
@@ -13,6 +15,8 @@ public static class IdeaValidationEndpoints
             IdeaRequest request,
             IdeaValidationService validations,
             IdeaValidationResultBuilder builder,
+            AuthSessionService sessions,
+            IUserStore users,
             CancellationToken cancellationToken) =>
         {
             var errors = IdeaValidationService.ValidateIdea(request?.Idea);
@@ -27,8 +31,11 @@ public static class IdeaValidationEndpoints
             var validation = await validations.ValidateAsync(request!.Idea!, cancellationToken);
             var servedFromCache = validation.CreatedAtUtc < DateTimeOffset.UtcNow - TimeSpan.FromMinutes(2);
             var response = await builder.BuildAsync(validation.Id, servedFromCache, cancellationToken);
+            await AnalysisHistorySaver.SaveAsync(sessions, users, "idea", validation.Id,
+                validation.IdeaText.Length > 120 ? validation.IdeaText[..120] : validation.IdeaText,
+                validation.Status.ToString(), validation.Version, cancellationToken);
             return Results.Ok(response);
-        });
+        }).RequireRateLimiting("expensive");
 
         group.MapGet("/idea/{validationId:long}", async (
             long validationId,

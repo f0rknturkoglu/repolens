@@ -28,6 +28,8 @@ public sealed class RepoLensDbContext(DbContextOptions<RepoLensDbContext> option
     public DbSet<IdeaValidation> IdeaValidations => Set<IdeaValidation>();
     public DbSet<Domain.Portfolio.PortfolioAnalysis> PortfolioAnalyses => Set<Domain.Portfolio.PortfolioAnalysis>();
     public DbSet<Domain.Recommendation.RecommendationRequest> RecommendationRequests => Set<Domain.Recommendation.RecommendationRequest>();
+    public DbSet<Domain.Identity.User> Users => Set<Domain.Identity.User>();
+    public DbSet<Domain.Identity.SavedAnalysis> SavedAnalyses => Set<Domain.Identity.SavedAnalysis>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
