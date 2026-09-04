@@ -38,6 +38,7 @@ public sealed class IdeaValidationResponse
 
     public sealed class CompetitorDto
     {
+        public long? RepositoryId { get; init; }
         public required string FullName { get; init; }
         public string? PrimaryLanguage { get; init; }
         public required int Stars { get; init; }
@@ -106,6 +107,7 @@ public sealed class IdeaValidationResultBuilder(
                     Competitors = storedNovelty.Competitors
                         .Select(c => new IdeaValidationResponse.CompetitorDto
                         {
+                            RepositoryId = c.RepositoryId > 0 ? c.RepositoryId : null,
                             FullName = c.FullName,
                             PrimaryLanguage = c.PrimaryLanguage,
                             Stars = c.Stars,
