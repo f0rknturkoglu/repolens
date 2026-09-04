@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import {
   Archive,
   ArrowLeft,
@@ -9,15 +9,20 @@ import {
   GitFork,
   RefreshCw,
   Star,
+  Network,
+  Lightbulb,
+  ArrowRight,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { SimilarProjectsSection } from '@/components/similar-projects'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout'
+import { EvidenceBadge } from '@/components/evidence-badge'
 import { RefreshError, fetchRepositoryDetail, refreshRepository } from '@/lib/repositories'
 
 export function RepositoryDetailPage() {
   const { repositoryId } = useParams()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const query = useQuery({
     queryKey: ['repository', repositoryId],
@@ -33,21 +38,32 @@ export function RepositoryDetailPage() {
     },
   })
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1)
+    } else {
+      navigate('/search')
+    }
+  }
+
   if (query.isPending) {
     return (
-      <div>
-        <PageHeader title="Repository" />
-        <div className="rounded-lg border p-8 text-center text-sm text-muted-foreground">Loading…</div>
+      <div className="space-y-4">
+        <PageHeader title="Repository Details" />
+        <div className="flex flex-col items-center justify-center rounded-xl border p-12 text-center text-sm text-muted-foreground">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="mt-3">Loading indexed repository…</p>
+        </div>
       </div>
     )
   }
 
   if (query.isError || !query.data) {
     return (
-      <div>
-        <PageHeader title="Repository" />
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6" role="alert">
-          <p className="text-sm font-medium text-destructive">Repository could not be loaded.</p>
+      <div className="space-y-4">
+        <PageHeader title="Repository Details" />
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6" role="alert">
+          <p className="text-sm font-semibold text-destructive">Repository could not be loaded.</p>
           <Button variant="outline" size="sm" className="mt-4" onClick={() => query.refetch()}>
             Try again
           </Button>
@@ -58,205 +74,261 @@ export function RepositoryDetailPage() {
 
   const repo = query.data
   const enrichmentLabel = enrichmentLabelOf(repo.enrichment.status)
-  const canRefresh = repo.enrichment.status === 'None'
-    || repo.enrichment.status === 'Complete'
-    || repo.enrichment.status === 'Failed'
+  const canRefresh =
+    repo.enrichment.status === 'None' ||
+    repo.enrichment.status === 'Complete' ||
+    repo.enrichment.status === 'Failed'
+
+  const ecosystemQuery = repo.topics[0] || repo.primaryLanguage || repo.name
 
   return (
-    <div>
-      <Link
-        to="/discover"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft data-slot="icon" className="size-3.5" />
-        Back to search
-      </Link>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back to previous page</span>
+        </button>
 
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">{repo.fullName}</h1>
-            {repo.isArchived && (
-              <Badge variant="secondary" className="gap-1">
-                <Archive data-slot="icon" />
-                archived
-              </Badge>
-            )}
-            {repo.isFork && <Badge variant="outline">fork</Badge>}
-            <a href={repo.htmlUrl} target="_blank" rel="noreferrer" aria-label="Open on GitHub">
-              <Badge variant="outline" className="gap-1">
-                GitHub <ExternalLink data-slot="icon" />
-              </Badge>
-            </a>
-          </div>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            {repo.description ?? 'No description.'}
-          </p>
+        <div className="flex items-center gap-2">
+          <EvidenceBadge
+            type="deterministic"
+            label="Indexed Repository"
+            subtext="Persisted in PostgreSQL database with pgvector embedding"
+          />
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          <Star data-slot="icon" className="text-amber-500" /> {repo.stars.toLocaleString()}
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <GitFork data-slot="icon" /> {repo.forks.toLocaleString()}
-        </span>
-        <span>{repo.openIssues.toLocaleString()} open issues</span>
-        <span className="inline-flex items-center gap-1">
-          <CalendarDays data-slot="icon" className="size-4" /> Created{' '}
-          {formatDate(repo.createdAtUtc)}
-        </span>
-        <span>Updated {formatDate(repo.updatedAtUtc)}</span>
-        {repo.licenseSpdx && <span>License: {repo.licenseSpdx}</span>}
-        {repo.defaultBranch && <span>Branch: {repo.defaultBranch}</span>}
+      {/* Header Info */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start justify-between rounded-xl border bg-card p-6 shadow-sm">
+        <div className="space-y-2 max-w-2xl">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{repo.fullName}</h1>
+            {repo.isArchived && (
+              <Badge variant="secondary" className="gap-1 text-xs">
+                <Archive className="h-3 w-3" />
+                archived
+              </Badge>
+            )}
+            {repo.isFork && <Badge variant="outline" className="text-xs">fork</Badge>}
+            <a
+              href={repo.htmlUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+            >
+              <span>GitHub</span>
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {repo.description ?? 'No repository description provided.'}
+          </p>
+
+          <div className="flex flex-wrap gap-x-5 gap-y-2 pt-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+              <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />{' '}
+              {repo.stars.toLocaleString()}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <GitFork className="h-3.5 w-3.5" /> {repo.forks.toLocaleString()} forks
+            </span>
+            <span>{repo.openIssues.toLocaleString()} open issues</span>
+            <span className="inline-flex items-center gap-1">
+              <CalendarDays className="h-3.5 w-3.5" /> Created {formatDate(repo.createdAtUtc)}
+            </span>
+            <span>Updated {formatDate(repo.updatedAtUtc)}</span>
+            {repo.licenseSpdx && <span>License: {repo.licenseSpdx}</span>}
+            {repo.defaultBranch && <span>Branch: {repo.defaultBranch}</span>}
+          </div>
+        </div>
+
+        {/* Action Buttons for Decision Journey */}
+        <div className="flex flex-col gap-2 shrink-0 sm:w-60">
+          <Link
+            to={`/ecosystem?query=${encodeURIComponent(ecosystemQuery)}`}
+            className="inline-flex items-center justify-between rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors"
+          >
+            <div className="flex items-center gap-1.5">
+              <Network className="h-3.5 w-3.5" />
+              <span>Explore Ecosystem</span>
+            </div>
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+
+          <Link
+            to={`/validate?idea=${encodeURIComponent(`An alternative to ${repo.fullName} that provides `)}`}
+            className="inline-flex items-center justify-between rounded-lg border bg-background px-3.5 py-2 text-xs font-medium text-foreground hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-1.5">
+              <Lightbulb className="h-3.5 w-3.5" />
+              <span>Validate Competing Idea</span>
+            </div>
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        <section className="rounded-lg border p-4 md:col-span-1">
-          <h2 className="text-sm font-medium">Enrichment</h2>
-          <div className="mt-2 flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${dotColorOf(repo.enrichment.status)}`} />
-            <span className="text-sm">{enrichmentLabel}</span>
+      {/* Grid: Enrichment Status + Languages + Topics */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Enrichment Status */}
+        <section className="rounded-xl border bg-card p-5 shadow-sm space-y-3 md:col-span-1">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-foreground">Enrichment State</h2>
+            {canRefresh && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 px-2 text-xs"
+                disabled={refresh.isPending}
+                onClick={() => refresh.mutate()}
+                title="Trigger background worker re-enrichment"
+              >
+                <RefreshCw className={`h-3 w-3 ${refresh.isPending ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className={`h-2.5 w-2.5 rounded-full ${dotColorOf(repo.enrichment.status)}`} />
+            <span className="text-xs font-semibold text-foreground">{enrichmentLabel}</span>
             {repo.enrichment.attempts > 0 && (
-              <span className="text-xs text-muted-foreground">
-                attempt {repo.enrichment.attempts}
+              <span className="text-[11px] text-muted-foreground">
+                (attempt {repo.enrichment.attempts})
               </span>
             )}
           </div>
+
           {repo.enrichment.status === 'Failed' && repo.enrichment.lastError && (
-            <p className="mt-2 text-xs text-destructive">{repo.enrichment.lastError}</p>
+            <p className="text-xs text-destructive bg-destructive/10 p-2 rounded">
+              {repo.enrichment.lastError}
+            </p>
           )}
+
           {repo.enrichment.status === 'Pending' && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Queued — metadata, README, topics and languages are being collected.
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Queued for background enrichment worker &mdash; README, topics, and pgvector embeddings are being generated.
             </p>
           )}
+
           {repo.enrichment.status === 'Complete' && repo.enrichedAtUtc && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Enriched {formatDateTime(repo.enrichedAtUtc)}
+            <p className="text-[11px] text-muted-foreground">
+              Last enriched {formatDateTime(repo.enrichedAtUtc)}
             </p>
           )}
-          {repo.enrichment.status === 'Failed' && (
-            <p className="mt-2 text-xs text-muted-foreground">The last enrichment run failed.</p>
-          )}
-          {repo.enrichment.status === 'None' && (
-            <p className="mt-2 text-xs text-muted-foreground">Not enriched yet.</p>
-          )}
-          <Button
-            size="sm"
-            className="mt-3 gap-1.5"
-            disabled={!canRefresh || refresh.isPending}
-            onClick={() => refresh.mutate()}
-          >
-            <RefreshCw data-slot="icon" className={refresh.isPending ? 'animate-spin' : ''} />
-            {refresh.isPending ? 'Queuing…' : 'Refresh repository'}
-          </Button>
-          {refresh.isError && refresh.error instanceof RefreshError && (
-            <p className="mt-2 text-xs text-destructive">{refresh.error.message}</p>
-          )}
-          {refresh.isSuccess && (
-            <p className="mt-2 text-xs text-muted-foreground">Refresh queued.</p>
+
+          {refresh.isError && (
+            <p className="text-xs text-destructive">
+              {refresh.error instanceof RefreshError
+                ? refresh.error.message
+                : 'Could not schedule refresh.'}
+            </p>
           )}
         </section>
 
-        <section className="rounded-lg border p-4 md:col-span-2">
-          <h2 className="text-sm font-medium">Languages</h2>
-          {repo.languages.length === 0 ? (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Language breakdown unavailable — enrich this repository.
-            </p>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {repo.languages.slice(0, 8).map((language) => (
-                <li key={language.language}>
-                  <div className="flex justify-between text-xs">
-                    <span>{language.language}</span>
-                    <span className="text-muted-foreground">
-                      {language.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%
-                    </span>
-                  </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary/70"
-                      style={{ width: `${Math.min(language.percentage, 100)}%` }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+        {/* Languages */}
+        <section className="rounded-xl border bg-card p-5 shadow-sm space-y-3 md:col-span-1">
+          <div className="flex items-center gap-1.5">
+            <Code2 className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-bold text-foreground">Languages</h2>
+          </div>
 
-          {repo.topics.length > 0 && (
-            <>
-              <h2 className="mt-5 text-sm font-medium">Topics</h2>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {repo.topics.map((topic) => (
-                  <Badge key={topic} variant="secondary">
-                    {topic}
-                  </Badge>
-                ))}
-              </div>
-            </>
+          {repo.languages.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">No language bytes recorded.</p>
+          ) : (
+            <div className="space-y-2">
+              {repo.languages.slice(0, 5).map((lang) => {
+                const pct = Math.round(lang.percentage)
+                return (
+                  <div key={lang.language} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-medium text-foreground">{lang.language}</span>
+                      <span className="text-muted-foreground">{pct}%</span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full bg-primary/70"
+                        style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Topics */}
+        <section className="rounded-xl border bg-card p-5 shadow-sm space-y-3 md:col-span-1">
+          <h2 className="text-sm font-bold text-foreground">Topics & Taxonomy</h2>
+          {repo.topics.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">No repository topics tagged.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {repo.topics.map((topic) => (
+                <Link
+                  key={topic}
+                  to={`/ecosystem?query=${encodeURIComponent(topic)}`}
+                  className="rounded-md border bg-muted/30 px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  title={`Explore ecosystem around ${topic}`}
+                >
+                  #{topic}
+                </Link>
+              ))}
+            </div>
           )}
         </section>
       </div>
 
-      <section className="mt-4 rounded-lg border p-4">
-        <h2 className="text-sm font-medium">README</h2>
-        {repo.readme?.text ? (
-          <>
-            <pre className="mt-3 max-h-[40rem] overflow-auto whitespace-pre-wrap text-sm leading-relaxed">
-              {repo.readme.text}
-            </pre>
-            {repo.readme.truncated && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                README truncated for display — full content is used for analysis.
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="mt-2 text-sm text-muted-foreground">
-            {repo.enrichment.status === 'Complete'
-              ? 'This repository has no README.'
-              : 'README will appear here after enrichment.'}
-          </p>
-        )}
-      </section>
+      {/* Similar Projects Section */}
+      <SimilarProjectsSection
+        repositoryId={repo.id}
+        enabled={repo.enrichment.status === 'Complete'}
+      />
 
-      <SimilarProjectsSection repositoryId={repo.id} enabled={repo.enrichment.status === 'Complete'} />
-
-      <p className="mt-4 flex items-center gap-1 text-xs text-muted-foreground">
-        <Code2 data-slot="icon" className="size-3.5" />
-        RepoLens id {repo.id} · GitHub id {repo.gitHubId} · Discovered{' '}
-        {formatDateTime(repo.discoveredAtUtc)}
-      </p>
+      {/* Normalized README Preview */}
+      {repo.readme?.present && repo.readme.text && (
+        <section className="rounded-xl border bg-card p-6 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b pb-3">
+            <h2 className="text-base font-bold text-foreground">README Content (Normalized)</h2>
+            <span className="text-xs text-muted-foreground">
+              {repo.readme.text.length.toLocaleString()} characters
+              {repo.readme.truncated ? ' (truncated)' : ''}
+            </span>
+          </div>
+          <div className="max-h-96 overflow-y-auto rounded-lg bg-muted/20 p-4 font-mono text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+            {repo.readme.text}
+          </div>
+        </section>
+      )}
     </div>
   )
 }
 
 function enrichmentLabelOf(status: string): string {
   switch (status) {
-    case 'Pending':
-      return 'Pending'
-    case 'Processing':
-      return 'Processing'
     case 'Complete':
-      return 'Complete'
+      return 'Enriched & Indexed'
+    case 'Pending':
+      return 'Enrichment Queued'
     case 'Failed':
-      return 'Failed'
+      return 'Enrichment Failed'
     default:
-      return 'Not enriched'
+      return 'Not Enriched'
   }
 }
 
 function dotColorOf(status: string): string {
   switch (status) {
-    case 'Pending':
-    case 'Processing':
-      return 'bg-amber-500'
     case 'Complete':
       return 'bg-emerald-500'
+    case 'Pending':
+      return 'bg-amber-500 animate-pulse'
     case 'Failed':
       return 'bg-destructive'
     default:
@@ -264,22 +336,18 @@ function dotColorOf(status: string): string {
   }
 }
 
-function formatDate(value: string): string {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString()
+  } catch {
+    return iso
+  }
 }
 
-function formatDateTime(value: string): string {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
+function formatDateTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString()
+  } catch {
+    return iso
+  }
 }
