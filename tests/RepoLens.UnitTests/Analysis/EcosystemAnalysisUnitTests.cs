@@ -208,4 +208,38 @@ public sealed class EcosystemAnalysisUnitTests
 
         Assert.Equal(0.5, metrics.RecentlyActiveRatio, precision: 6);
     }
+
+    [Fact]
+    public void Clusterizer_IsCompletelyDeterministicAcrossPermutations()
+    {
+        var reposA = new List<RepoFeatures>
+        {
+            Repo(10, "postgres-migrator", "Go", topics: ["migration", "postgres", "sql"]),
+            Repo(20, "sql-migrate", "Go", topics: ["migration", "sql"]),
+            Repo(30, "db-bench", "Rust", topics: ["benchmark", "database"]),
+            Repo(40, "db-perf", "Rust", topics: ["benchmark", "database"]),
+            Repo(50, "unrelated-ui", "TypeScript", topics: ["react", "ui"]),
+        };
+
+        // Permuted list in reverse
+        var reposB = reposA.AsEnumerable().Reverse().ToList();
+
+        var edgesA = RepoSimilarity.Edges(reposA);
+        var edgesB = RepoSimilarity.Edges(reposB);
+
+        var clustersA = Clusterizer.Build(reposA, edgesA);
+        var clustersB = Clusterizer.Build(reposB, edgesB);
+
+        Assert.Equal(clustersA.Count, clustersB.Count);
+        for (var i = 0; i < clustersA.Count; i++)
+        {
+            Assert.Equal(clustersA[i].Label, clustersB[i].Label);
+            Assert.Equal(clustersA[i].Members.Count, clustersB[i].Members.Count);
+            for (var m = 0; m < clustersA[i].Members.Count; m++)
+            {
+                Assert.Equal(clustersA[i].Members[m].RepositoryId, clustersB[i].Members[m].RepositoryId);
+                Assert.Equal(clustersA[i].Members[m].Centrality, clustersB[i].Members[m].Centrality);
+            }
+        }
+    }
 }

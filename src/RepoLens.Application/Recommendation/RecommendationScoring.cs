@@ -74,6 +74,12 @@ public static class CandidateFeasibility
 /// </summary>
 public static class RecommendationScorer
 {
+    public const int WeightOriginalityPercent = 30;
+    public const int WeightPortfolioMarginalPercent = 20;
+    public const int WeightFeasibilityPercent = 20;
+    public const int WeightGoalAlignmentPercent = 15;
+    public const int WeightInterestAlignmentPercent = 15;
+
     public static double PortfolioMarginalNeutral = 0.5;
 
     public static double Score(
@@ -84,11 +90,11 @@ public static class RecommendationScorer
         double interestAlignment) // 0..1
         =>
         Math.Round(
-            0.30 * originality
-            + 0.20 * portfolioMarginal
-            + 0.20 * feasibility
-            + 0.15 * goalAlignment
-            + 0.15 * interestAlignment,
+            (WeightOriginalityPercent / 100.0) * originality
+            + (WeightPortfolioMarginalPercent / 100.0) * portfolioMarginal
+            + (WeightFeasibilityPercent / 100.0) * feasibility
+            + (WeightGoalAlignmentPercent / 100.0) * goalAlignment
+            + (WeightInterestAlignmentPercent / 100.0) * interestAlignment,
             4);
 
     /// <summary>Overlap between free-text (goal/interests) and candidate category keywords.</summary>

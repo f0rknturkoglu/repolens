@@ -23,7 +23,13 @@ const noveltySchema = z.object({
   score: z.number(),
   formulaVersion: z.string(),
   components: z.array(
-    z.object({ key: z.string(), label: z.string(), value: z.number(), evidence: z.string() }),
+    z.object({
+      key: z.string(),
+      label: z.string(),
+      value: z.number(),
+      evidence: z.string(),
+      weightPercent: z.number().optional(),
+    }),
   ),
   competitors: z.array(
     z.object({
@@ -137,11 +143,11 @@ export function IdeaValidationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Map components for ScoreExplainer
+  // Map components for ScoreExplainer (backend weightPercent is single source of truth)
   const scoreComponents: ScoreComponent[] =
     novelty?.components.map((c) => ({
       name: c.label,
-      weightPercent: getComponentWeight(c.key),
+      weightPercent: c.weightPercent ?? getComponentWeight(c.key),
       score: c.value,
       description: c.evidence,
     })) ?? []
@@ -222,7 +228,7 @@ export function IdeaValidationPage() {
                 type="deterministic"
                 label={novelty.formulaVersion}
                 version="v1"
-                subtext="Deterministic formula weights: 30% closest, 25% density, 20% cluster, 15% active, 10% duplicate"
+                subtext={`Deterministic formula weights: ${scoreComponents.map((c) => `${c.weightPercent}% ${c.name.toLowerCase()}`).join(', ')}`}
               />
               {result.servedFromCache && (
                 <Badge variant="secondary" className="text-[11px]">

@@ -68,6 +68,7 @@ public sealed class IdeaValidationApiTests(PostgresContainerFixture postgres)
         Assert.NotNull(body.Novelty);
         Assert.InRange(body.Novelty.Score, 0, 100);
         Assert.NotEmpty(body.Novelty.Components);
+        Assert.Equal(100, body.Novelty.Components.Sum(c => c.WeightPercent));
         Assert.Equal("novelty-v1", body.Novelty.FormulaVersion);
         Assert.NotNull(body.QueryPlan);
         Assert.NotEmpty(body.QueryPlan);
@@ -175,6 +176,7 @@ public sealed class IdeaValidationApiTests(PostgresContainerFixture postgres)
             public string Label { get; init; } = string.Empty;
             public double Value { get; init; }
             public string Evidence { get; init; } = string.Empty;
+            public int WeightPercent { get; init; }
         }
 
         public sealed record PlanQueryJson(string Text, string Source);

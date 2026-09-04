@@ -18,7 +18,8 @@ public sealed record NoveltyComponent(
     string Key,
     string Label,
     double Value, // 0 (saturated) .. 1 (novel)
-    string Evidence);
+    string Evidence,
+    int WeightPercent = 0);
 
 /// <summary>Result of the deterministic novelty calculation.</summary>
 public sealed record NoveltyResult(
@@ -37,6 +38,12 @@ public static class IdeaNoveltyScorer
     public const int ActiveCompetitorWindowDays = 90;
     public const int CompetitorLimit = 3;
     public const double NearDuplicateThreshold = 0.7;
+
+    public const int WeightClosestCompetitorPercent = 30;
+    public const int WeightDensityPercent = 25;
+    public const int WeightClusterDominancePercent = 20;
+    public const int WeightActiveCompetitionPercent = 15;
+    public const int WeightConceptRedundancyPercent = 10;
 
     public static double ClosestCompetitorOverlap(
         RepoFeatures candidate,
@@ -67,7 +74,7 @@ public static class IdeaNoveltyScorer
                 Components:
                 [
                     new NoveltyComponent("candidates", "Candidate presence", 1.0,
-                        "No candidate repositories were found in the analyzed set."),
+                        "No candidate repositories were found in the analyzed set.", 100),
                 ],
                 Competitors: []);
         }
@@ -103,14 +110,14 @@ public static class IdeaNoveltyScorer
             candidates.Count, closest, density, largestClusterShare, activeCount,
             nearDuplicatePairShare, competitors);
 
-        // novelty-v1 weights: closest-competitor distance 0.30, density 0.25,
-        // cluster dominance 0.20, active competition 0.15, redundancy 0.10.
+        // novelty-v1 weights: closest-competitor distance 30%, density 25%,
+        // cluster dominance 20%, active competition 15%, redundancy 10%.
         var total = Math.Round(100.0 * (
-            0.30 * componentList[0].Value
-            + 0.25 * componentList[1].Value
-            + 0.20 * componentList[2].Value
-            + 0.15 * componentList[3].Value
-            + 0.10 * componentList[4].Value), 0);
+            (WeightClosestCompetitorPercent / 100.0) * componentList[0].Value
+            + (WeightDensityPercent / 100.0) * componentList[1].Value
+            + (WeightClusterDominancePercent / 100.0) * componentList[2].Value
+            + (WeightActiveCompetitionPercent / 100.0) * componentList[3].Value
+            + (WeightConceptRedundancyPercent / 100.0) * componentList[4].Value), 0);
 
         return new NoveltyResult(
             total,
@@ -142,16 +149,16 @@ public static class IdeaNoveltyScorer
 
         return
         [
-            new NoveltyComponent("competitor_gap", "Closest competitor distance", 1 - closest, nearestText),
+            new NoveltyComponent("competitor_gap", "Closest competitor distance", 1 - closest, nearestText, WeightClosestCompetitorPercent),
             new NoveltyComponent("density", "Similarity density", 1 - density,
-                $"Mean pairwise similarity of candidates is {density:0.00}."),
+                $"Mean pairwise similarity of candidates is {density:0.00}.", WeightDensityPercent),
             new NoveltyComponent("cluster_dominance", "Largest cluster share", 1 - largestClusterShare,
-                $"Largest cluster holds {Math.Round(largestClusterShare * 100)}% of candidates."),
+                $"Largest cluster holds {Math.Round(largestClusterShare * 100)}% of candidates.", WeightClusterDominancePercent),
             new NoveltyComponent("active_competition", "Active competitor scarcity",
-                Math.Clamp(1 - activeCount / 20.0, 0, 1), activeText),
+                Math.Clamp(1 - activeCount / 20.0, 0, 1), activeText, WeightActiveCompetitionPercent),
             new NoveltyComponent("concept_redundancy", "Near-duplicate scarcity",
                 1 - nearDuplicatePairShare,
-                $"{Math.Round(nearDuplicatePairShare * 100)}% of candidate pairs look near-duplicate (similarity ≥ {NearDuplicateThreshold:0.00})."),
+                $"{Math.Round(nearDuplicatePairShare * 100)}% of candidate pairs look near-duplicate (similarity ≥ {NearDuplicateThreshold:0.00}).", WeightConceptRedundancyPercent),
         ];
     }
 

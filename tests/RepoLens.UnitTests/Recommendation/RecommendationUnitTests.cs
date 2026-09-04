@@ -122,4 +122,60 @@ public sealed class RecommendationUnitTests
 
         Assert.Equal(a, b);
     }
+
+    [Fact]
+    public void RecommendationWeights_SumTo100Percent()
+    {
+        var totalPercent = RecommendationScorer.WeightOriginalityPercent
+            + RecommendationScorer.WeightPortfolioMarginalPercent
+            + RecommendationScorer.WeightFeasibilityPercent
+            + RecommendationScorer.WeightGoalAlignmentPercent
+            + RecommendationScorer.WeightInterestAlignmentPercent;
+
+        Assert.Equal(100, totalPercent);
+
+        var dto = new RecommendationResponse.ScoringWeightsDto();
+        Assert.Equal(RecommendationScorer.WeightOriginalityPercent, dto.Originality);
+        Assert.Equal(RecommendationScorer.WeightPortfolioMarginalPercent, dto.PortfolioMarginal);
+        Assert.Equal(RecommendationScorer.WeightFeasibilityPercent, dto.Feasibility);
+        Assert.Equal(RecommendationScorer.WeightGoalAlignmentPercent, dto.GoalAlignment);
+        Assert.Equal(RecommendationScorer.WeightInterestAlignmentPercent, dto.InterestAlignment);
+    }
+
+    private sealed class StubLlm(bool configured, string json = "{}") : RepoLens.Application.Ai.ILlmClient
+    {
+        public string Model => "stub";
+        public bool IsConfigured => configured;
+
+        public Task<RepoLens.Application.Ai.LlmJsonResponse> CompleteJsonAsync(
+            RepoLens.Application.Ai.LlmJsonRequest request,
+            CancellationToken cancellationToken)
+        {
+            return configured
+                ? Task.FromResult(new RepoLens.Application.Ai.LlmJsonResponse(json, Model))
+                : Task.FromException<RepoLens.Application.Ai.LlmJsonResponse>(
+                    new RepoLens.Application.Ai.LlmUnavailableException(null));
+        }
+    }
+
+    [Fact]
+    public async Task CandidateGenerator_WhenLlmNotConfigured_ReturnsDeterministicFallbackBank()
+    {
+        var input = new RecommendationInput("Build a fast db engine", ["databases"], null, null);
+        var candidates = await CandidateGenerator.GenerateAsync(input, new StubLlm(false), CancellationToken.None);
+
+        Assert.NotEmpty(candidates);
+        Assert.Contains(candidates, c => c.Title == "Schema migration replay laboratory");
+        Assert.Contains(candidates, c => c.Category == "Databases");
+    }
+
+    [Fact]
+    public async Task CandidateGenerator_WhenLlmReturnsMalformedJson_ReturnsFallbackBank()
+    {
+        var input = new RecommendationInput("Build an observability tool", ["observability"], null, null);
+        var candidates = await CandidateGenerator.GenerateAsync(input, new StubLlm(true, "not valid json"), CancellationToken.None);
+
+        Assert.NotEmpty(candidates);
+        Assert.Contains(candidates, c => c.Category == "Databases");
+    }
 }

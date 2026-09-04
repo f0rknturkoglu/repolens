@@ -215,4 +215,35 @@ public sealed class IdeaValidationUnitTests
 
         Assert.Equal(first, second);
     }
+
+    [Fact]
+    public void Novelty_ComponentWeights_SumTo100Percent()
+    {
+        var candidates = new List<RepoFeatures>
+        {
+            Repo(1, "db-migrate", topics: ["migration", "database"]),
+            Repo(2, "sql-migrate", topics: ["migration", "database"]),
+        };
+        var idea = SearchPlanBuilder.IdeaTerms("database migration tool");
+
+        var result = IdeaNoveltyScorer.Compute(candidates, idea, DateTimeOffset.UtcNow);
+
+        Assert.Equal(5, result.Components.Count);
+        Assert.Equal(100, result.Components.Sum(c => c.WeightPercent));
+        Assert.Equal(IdeaNoveltyScorer.WeightClosestCompetitorPercent, result.Components.First(c => c.Key == "competitor_gap").WeightPercent);
+        Assert.Equal(IdeaNoveltyScorer.WeightDensityPercent, result.Components.First(c => c.Key == "density").WeightPercent);
+        Assert.Equal(IdeaNoveltyScorer.WeightClusterDominancePercent, result.Components.First(c => c.Key == "cluster_dominance").WeightPercent);
+        Assert.Equal(IdeaNoveltyScorer.WeightActiveCompetitionPercent, result.Components.First(c => c.Key == "active_competition").WeightPercent);
+        Assert.Equal(IdeaNoveltyScorer.WeightConceptRedundancyPercent, result.Components.First(c => c.Key == "concept_redundancy").WeightPercent);
+    }
+
+    [Fact]
+    public void Novelty_ZeroCandidates_Has100PercentWeightOnCandidateComponent()
+    {
+        var result = IdeaNoveltyScorer.Compute([], ["tool"], DateTimeOffset.UtcNow);
+
+        Assert.Single(result.Components);
+        Assert.Equal("candidates", result.Components[0].Key);
+        Assert.Equal(100, result.Components[0].WeightPercent);
+    }
 }

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams, useNavigate } from 'react-router-dom'
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Archive,
   ArrowLeft,
@@ -23,6 +23,7 @@ import { RefreshError, fetchRepositoryDetail, refreshRepository } from '@/lib/re
 export function RepositoryDetailPage() {
   const { repositoryId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
   const query = useQuery({
     queryKey: ['repository', repositoryId],
@@ -39,7 +40,8 @@ export function RepositoryDetailPage() {
   })
 
   const handleBack = () => {
-    if (window.history.length > 1) {
+    // If navigation happened inside the app, go back to keep search query and filters
+    if (location.key !== 'default') {
       navigate(-1)
     } else {
       navigate('/search')

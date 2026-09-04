@@ -64,6 +64,16 @@ public sealed class RecommendationResponse
     public required DateTimeOffset CreatedAtUtc { get; init; }
     public required IReadOnlyList<RecommendationItem> Items { get; init; }
     public required string Limitations { get; init; }
+    public ScoringWeightsDto Weights { get; init; } = new();
+
+    public sealed class ScoringWeightsDto
+    {
+        public int Originality { get; init; } = RecommendationScorer.WeightOriginalityPercent;
+        public int PortfolioMarginal { get; init; } = RecommendationScorer.WeightPortfolioMarginalPercent;
+        public int Feasibility { get; init; } = RecommendationScorer.WeightFeasibilityPercent;
+        public int GoalAlignment { get; init; } = RecommendationScorer.WeightGoalAlignmentPercent;
+        public int InterestAlignment { get; init; } = RecommendationScorer.WeightInterestAlignmentPercent;
+    }
 }
 
 /// <summary>Persistence port for recommendation requests.</summary>

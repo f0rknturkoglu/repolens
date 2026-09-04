@@ -34,6 +34,7 @@ public sealed class IdeaValidationResponse
         public required string Label { get; init; }
         public required double Value { get; init; }
         public required string Evidence { get; init; }
+        public int WeightPercent { get; init; }
     }
 
     public sealed class CompetitorDto
@@ -102,6 +103,7 @@ public sealed class IdeaValidationResultBuilder(
                             Label = c.Label,
                             Value = c.Value,
                             Evidence = c.Evidence,
+                            WeightPercent = c.WeightPercent > 0 ? c.WeightPercent : DefaultNoveltyWeight(c.Key),
                         })
                         .ToList(),
                     Competitors = storedNovelty.Competitors
@@ -183,6 +185,17 @@ public sealed class IdeaValidationResultBuilder(
                 .Select(m => byId[m.RepositoryId].FullName)
                 .ToList())).ToList();
     }
+
+    private static int DefaultNoveltyWeight(string key) => key switch
+    {
+        "competitor_gap" => IdeaNoveltyScorer.WeightClosestCompetitorPercent,
+        "density" => IdeaNoveltyScorer.WeightDensityPercent,
+        "cluster_dominance" => IdeaNoveltyScorer.WeightClusterDominancePercent,
+        "active_competition" => IdeaNoveltyScorer.WeightActiveCompetitionPercent,
+        "concept_redundancy" => IdeaNoveltyScorer.WeightConceptRedundancyPercent,
+        "candidates" => 100,
+        _ => 20,
+    };
 
     private sealed class StoredCluster
     {

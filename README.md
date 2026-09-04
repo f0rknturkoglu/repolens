@@ -1,109 +1,191 @@
-# RepoLens
+# RepoLens: Evidence-Backed GitHub Ecosystem Intelligence
 
-**GitHub Ecosystem Intelligence** — search GitHub, build your own index of what
-you care about, and get evidence-backed answers: ecosystem landscapes, how
-saturated a project idea is, portfolio signals, and project recommendations.
+[![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![PostgreSQL 17 + pgvector](https://img.shields.io/badge/PostgreSQL-17_%2B_pgvector-336791?logo=postgresql)](https://github.com/pgvector/pgvector)
+[![Architecture](https://img.shields.io/badge/Architecture-Modular_Monolith-emerald)](#architecture)
+[![Deterministic Scoring](https://img.shields.io/badge/Scoring-Deterministic_%26_Versioned-blue)](#scoring-and-evidence-methodology)
+[![Tests](https://img.shields.io/badge/Tests-87_Unit_%7C_70_Integration-success)](#automated-testing-and-verification)
 
-Reads only public GitHub data. All scores are deterministic and versioned
-(`docs/scoring.md`, `docs/decisions/`); LLMs never compute scores and every LLM
-path has a deterministic fallback.
+**RepoLens** is an evidence-backed GitHub ecosystem intelligence engine that helps software engineers and technical founders decide **what to build next**.
 
-## Flows
+Instead of relying on vanity star metrics or hallucinated LLM flattery, RepoLens conducts bounded GitHub ecosystem searches, builds an in-database similarity graph, and computes deterministic, mathematically explainable scores on idea saturation, competitor proximity, and portfolio value.
 
-| Flow | Path | API |
-| --- | --- | --- |
-| Explore GitHub | `/discover` | `GET /api/discovery/repositories` |
-| Repository detail / enrichment | `/repositories/:id` | `GET/POST /api/repositories/{id}[/refresh]` |
-| Search RepoLens (hybrid) | `/search` | `GET /api/search/repositories` |
-| Similar projects | detail page | `GET /api/repositories/{id}/similar` |
-| Ecosystem analysis | `/ecosystem` | `POST /api/analysis/ecosystem`, `GET /api/analysis/ecosystem/{id}` |
-| Validate an Idea | `/validate` | `POST /api/analysis/idea`, `GET /api/analysis/idea/{id}` |
-| Analyze Portfolio | `/portfolio` | `GET /api/portfolio/{username}`, `POST /api/portfolio/{username}/marginal` |
-| Find My Next Project | `/recommend` | `POST /api/recommendations`, `GET /api/recommendations/{id}` |
-| Account & history | `/account` | `/api/auth/*` (optional OAuth) |
+---
 
-## Stack
+## Why RepoLens?
 
-| Layer | Tech |
-| --- | --- |
-| Backend | .NET 10 / C# 14, ASP.NET Core minimal APIs, EF Core 10, Npgsql, OpenTelemetry |
-| Database | PostgreSQL + pgvector (Docker); tsvector FTS + exact vector search |
-| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, Tailwind v4, shadcn/ui, Zod |
-| Testing | xUnit, Testcontainers PostgreSQL, WireMock.Net (GitHub/LLM), GitHub Actions CI |
-| Optional external | OpenAI-compatible embeddings/chat endpoints; GitHub OAuth |
+Every week, developers and engineering teams start open-source projects or developer tools without understanding the competitive landscape:
+- **The GitHub Star Fallacy:** Stars reflect historical virality, not ongoing maintenance or current architecture. A project with 15k stars may be unmaintained for 3 years, leaving an open niche for a modern alternative.
+- **LLM Hallucination & Sycophancy:** Generic AI chat models invariably praise any project idea as "innovative" without verifying existing implementations or inspecting GitHub dependency trees.
+- **Unbounded Claims:** Existing search tools make sweeping generalizations ("nothing like this exists") without identifying the exact evaluated candidate set.
 
-## Prerequisites
+RepoLens enforces **"Conclusion → Why → Evidence → Methodology"**:
+1. **Bounded candidate sets:** Every metric is scoped strictly to the evaluated candidate set gathered via multi-angle search plans ($N$ repositories).
+2. **Deterministic math:** Scores are computed exclusively by versioned mathematical equations (`novelty-v1`, `rec-v1`, `marginal-v1`). LLMs never compute scores.
+3. **Strict LLM boundaries:** LLMs are restricted to brainstorming candidate titles and search queries. If an LLM is offline or unconfigured, RepoLens executes seamlessly using deterministic offline fallbacks.
 
+---
+
+## Two Core Pillars
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                                REPOLENS                                  │
+├─────────────────────────────────────┬────────────────────────────────────┤
+│       DECIDE WHAT TO BUILD          │        EXPLORE & RESEARCH          │
+│   • Validate an Idea (/validate)    │   • Ecosystem Analysis (/ecosystem)│
+│   • Find Next Project (/recommend)  │   • Hybrid Search (/search)        │
+│   • Portfolio Gaps (/portfolio)     │   • Explore Live GitHub (/discover)│
+└─────────────────────────────────────┴────────────────────────────────────┘
+```
+
+### Pillar 1: Decide What to Build
+- **Validate an Idea (`/validate`):** Formulates a multi-query search plan, gathers candidates, clusters the similarity graph, calculates a deterministic `novelty-v1` score (0–100), and flags the closest 3 competitors with specific overlap reasons.
+- **Decide What to Build Next (`/recommend`):** Generates 3 diverse project proposals ranked by the `rec-v1` multi-factor formula, balancing originality, portfolio marginal value, feasibility, and goal fit.
+- **Portfolio Gap Analysis (`/portfolio`):** Maps a GitHub profile against an 8-category software engineering taxonomy, identifying areas of strong, moderate, or limited evidence. Provides a **"Bridge Gap"** action bridge directly into the recommendation engine.
+
+### Pillar 2: Explore & Research
+- **Ecosystem Intelligence (`/ecosystem`):** Maps connected-component project clusters, market concentration, language distributions, and maintenance velocity for any software domain.
+- **Hybrid Search Engine (`/search`):** Combines PostgreSQL full-text search (`tsvector`) and dense vector similarity (`pgvector`) fused via **Reciprocal Rank Fusion ($k=60$)**.
+- **Repository Deep Dive (`/repositories/:id`):** Enriched metadata, README analysis, topic vectors, and similar project recommendations.
+
+---
+
+## Architecture
+
+RepoLens is built as a **modular monolith** with zero speculative abstractions (no CQRS boilerplate, no generic repository layers, no external message brokers).
+
+```mermaid
+graph TD
+    subgraph "Frontend: React 19 SPA"
+        Web["Tailwind CSS v4 + TanStack Query + Zod"]
+    end
+
+    subgraph "Backend: ASP.NET Core 10 Monolith"
+        API["Minimal API Endpoints<br/>• RateLimiting & ProblemDetails<br/>• OpenTelemetry Instrumentation"]
+        Search["Hybrid Search Engine<br/>• tsvector FTS + pgvector Cosine<br/>• Reciprocal Rank Fusion (k=60)"]
+        Cluster["Ecosystem Clusterizer<br/>• Graph BFS Connected Components<br/>• Deterministic Centrality"]
+        Worker["Durable Background Worker<br/>• FOR UPDATE SKIP LOCKED<br/>• Poison Job Dead Lettering"]
+    end
+
+    subgraph "Persistence"
+        PG[("PostgreSQL 17 + pgvector<br/>Single Production Database")]
+    end
+
+    Web <-->|JSON over HTTP| API
+    API --> Search
+    API --> Cluster
+    API --> PG
+    Search <--> PG
+    Cluster <--> PG
+    Worker <-->|Poll & Claim| PG
+```
+
+### Key Engineering Principles
+- **Single Production Database:** PostgreSQL with `pgvector` handles relational tables, JSON payloads, full-text indexes, and 1536-dimensional embeddings. No separate vector database or synchronization pipeline.
+- **Durable In-Database Queue:** Asynchronous enrichment jobs are processed using PostgreSQL `FOR UPDATE SKIP LOCKED`, supporting crash recovery, exponential backoff, and GitHub rate-limit reset scheduling.
+- **Deterministic Clustering:** Breadth-first search (BFS) over topic and token Dice coefficients generates connected components with deterministic ID sorting (ADR 002).
+
+---
+
+## Scoring and Evidence Methodology
+
+All formulas are versioned in code and documented in [`docs/scoring.md`](docs/scoring.md).
+
+### 1. Estimated Novelty (`novelty-v1`)
+
+Computed over the evaluated candidate set ($N$ repositories):
+
+$$\text{Novelty} = \text{round}\left(100 \times \left(0.30 \cdot C_{\text{gap}} + 0.25 \cdot D_{\text{sim}} + 0.20 \cdot S_{\text{cluster}} + 0.15 \cdot A_{\text{act}} + 0.10 \cdot R_{\text{dup}}\right)\right)$$
+
+| Weight | Component | Meaning & Formula |
+|---|---|---|
+| **30%** | **Closest Competitor Distance** | $1 - \max \text{Overlap}(\text{idea}, \text{competitors})$ |
+| **25%** | **Similarity Density** | $1 - \text{MeanPairwiseSimilarity}(\text{candidates})$ |
+| **20%** | **Largest Cluster Share** | $1 - \frac{|\text{Largest Cluster}|}{N}$ |
+| **15%** | **Active Competitor Scarcity** | $\text{clamp}\left(1 - \frac{\text{Active}_{\text{90d}}}{20}, 0, 1\right)$ |
+| **10%** | **Near-Duplicate Scarcity** | $1 - \frac{\text{Pairs}(\text{score} \ge 0.70)}{\binom{N}{2}}$ |
+
+### 2. Recommendation Ranking (`rec-v1`)
+
+Ranks brainstormed project candidates deterministically:
+
+$$\text{Score} = 0.30 \cdot \text{Originality} + 0.20 \cdot \text{PortfolioMarginal} + 0.20 \cdot \text{Feasibility} + 0.15 \cdot \text{GoalAlignment} + 0.15 \cdot \text{InterestAlignment}$$
+
+- **Originality (30%):** Estimated novelty score $/ 100$.
+- **Portfolio Marginal Value (20%):** Value added to developer's public GitHub portfolio based on taxonomy coverage ($0.5$ neutral without username).
+- **Feasibility (20%):** Text-derived scope estimate (integration and infrastructure signals) weighted against target timeframe.
+- **Goal & Interest Alignment (15% + 15%):** Category keyword overlap against developer goals.
+
+---
+
+## Quickstart
+
+### Prerequisites
 - [.NET SDK 10](https://dotnet.microsoft.com/download) (`global.json`)
-- Node.js 24 + npm
-- Docker (Docker Desktop or equivalent) — required for the database and
-  integration tests, not for building
+- [Node.js 24+](https://nodejs.org/) & npm
+- [Docker](https://www.docker.com/) (for PostgreSQL 17 + pgvector)
 
-## Development
+### Local Development
 
+1. **Start the database:**
+   ```bash
+   docker compose up -d postgres
+   ```
+2. **Start the ASP.NET Core API:**
+   ```bash
+   dotnet run --project src/RepoLens.Api
+   # API listening on http://localhost:5190 (Health check: http://localhost:5190/health)
+   ```
+3. **Start the React frontend:**
+   ```bash
+   cd src/RepoLens.Web
+   npm install
+   npm run dev
+   # Vite dev server listening on http://localhost:5173
+   ```
+
+### Full Stack via Docker Compose
+To run the entire production-grade stack (PostgreSQL + API + Nginx SPA) in containers:
 ```bash
-docker compose up -d postgres                     # PostgreSQL + pgvector
-dotnet run --project src/RepoLens.Api             # http://localhost:5190/health
-cd src/RepoLens.Web && npm install && npm run dev  # http://localhost:5173
+docker compose --profile full up --build
+# Web application available at http://localhost:8080
 ```
 
-Configuration lives in `appsettings.json` + environment variables:
+---
 
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `ConnectionStrings__DefaultConnection` | PostgreSQL | dev values in `appsettings.Development.json` |
-| `GitHub__Token` | optional unauthenticated→authenticated rate limits | none |
-| `Embedding__Model` / `Embedding__ApiKey` | enable hybrid/similar (OpenAI-compatible `Embedding__BaseUrl`) | off |
-| `Llm__Model` / `Llm__ApiKey` | enable LLM-assisted plans/ideas (OpenAI-compatible `Llm__BaseUrl`) | off |
-| `Auth__CookieKey` + `GitHub__OAuthClientId`/`GitHub__OAuthClientSecret` + `GitHub__OAuth__CallbackUrl` | GitHub sign-in + history | off |
+## Automated Testing and Verification
 
-No real secrets are committed; every optional capability degrades gracefully
-(keyword-only search, deterministic fallback plans, anonymous use).
-
-## Tests
+RepoLens maintains a rigorous, zero-flakiness test suite:
 
 ```bash
+# 1. Build the solution
 dotnet build RepoLens.sln
+
+# 2. Run unit tests (Pure algorithmic logic, scorers, clustering, RRF)
 dotnet test tests/RepoLens.UnitTests
-dotnet test tests/RepoLens.IntegrationTests   # requires Docker (Testcontainers)
-cd src/RepoLens.Web && npm run typecheck && npm run build && npm run lint
+# Passed: 87/87
+
+# 3. Run integration tests (Testcontainers PostgreSQL + WireMock.Net)
+dotnet test tests/RepoLens.IntegrationTests
+# Passed: 70/70 (Requires Docker daemon)
+
+# 4. Verify frontend contracts, types, and styles
+cd src/RepoLens.Web
+npm run typecheck   # TypeScript check (0 errors)
+npm run lint        # Oxlint linter (0 warnings)
+npm run build       # Production bundle build
 ```
 
-Integration tests never call the real GitHub API — WireMock.Net stands in for
-GitHub and the LLM provider, Testcontainers runs real PostgreSQL+pgvector.
-CI runs all of the above plus a Docker image build.
+---
 
-## Documentation
+## Documentation Index
 
-- `docs/architecture.md` — layers, flows, cross-cutting decisions
-- `docs/product.md` — product language and capability map
-- `docs/scoring.md` — novelty / marginal value / recommendation formulas
-- `docs/search-ranking.md` — FTS weights, RRF, similarity
-- `docs/analysis-limitations.md` — what claims are and are not made
-- `docs/decisions/` — ADRs: 001 initial architecture, 002 clustering
-  (why not Python/HDBSCAN/ML.NET), 003 search/scoring/LLM boundaries
-
-## Development principles
-
-`AGENTS.md`: modular monolith, feature-oriented growth, single PostgreSQL, no
-speculative abstractions (no `GenericRepository<T>`/MediatR/event buses), EF
-InMemory never used in tests, deliberate ADR-documented decisions. Known
-current limitations (no Docker on a dev box → integration tests run in CI; no
-trend/history analysis yet — snapshot history exists but trend features are
-deliberately not built).
-
-## WSL-native development (recommended)
-
-The canonical development copy lives at `~/projects/repolens` inside WSL2
-(Ubuntu). Docker Engine runs natively in WSL — Docker Desktop is not used.
-User-level helpers:
-
-- `rl` — `cd ~/projects/repolens`
-- `rlup` — start containerd/docker, then `docker compose up -d` (PostgreSQL/pgvector)
-- `rldown` — stop containers, then Docker + containerd (idle = no daemon running)
-- `rltest` — backend Release build + unit + integration tests, then frontend gates
-
-Docker and containerd are disabled at boot; only `rlup` starts them.
-Integration tests run Testcontainers against the native WSL daemon.
-
-Full endpoint inventory: `docs/api-surface.md`.
+- [**Technical Case Study**](docs/case-study.md) — Comprehensive deep-dive on architectural decisions, trade-offs, resilience, and quantifiable impact.
+- [**Algorithmic Benchmarks**](docs/benchmarks.md) — Empirical evaluation of 6 real-world software archetypes (saturated, niche, novel, noisy, etc.).
+- [**Scoring Formulas**](docs/scoring.md) — Mathematical definitions of `novelty-v1`, `marginal-v1`, `rec-v1`, and `taxonomy-v1`.
+- [**Search & Ranking**](docs/search-ranking.md) — FTS weights, dense vector cosine similarity, and RRF $k=60$ details.
+- [**Analysis Limitations**](docs/analysis-limitations.md) — Candidate set boundary declarations and non-claims.
+- [**Architecture Decision Records (ADRs)**](docs/decisions/) — ADR 001 (Monolith), ADR 002 (In-process clustering vs Python/HDBSCAN), ADR 003 (LLM boundaries).
+- [**API Surface**](docs/api-surface.md) — Complete endpoint inventory with HTTP methods, rate limits, and schemas.

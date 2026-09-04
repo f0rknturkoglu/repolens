@@ -18,6 +18,14 @@ import { EvidenceBadge } from '@/components/evidence-badge'
 import { ApiError, getJson } from '@/lib/api'
 import { z } from 'zod'
 
+const scoringWeightsSchema = z.object({
+  originality: z.number().default(30),
+  portfolioMarginal: z.number().default(20),
+  feasibility: z.number().default(20),
+  goalAlignment: z.number().default(15),
+  interestAlignment: z.number().default(15),
+})
+
 const recommendationResponseSchema = z.object({
   id: z.number(),
   version: z.string(),
@@ -28,6 +36,13 @@ const recommendationResponseSchema = z.object({
   durationWeeks: z.string().nullable(),
   servedFromCache: z.boolean(),
   createdAtUtc: z.string(),
+  weights: scoringWeightsSchema.optional().default({
+    originality: 30,
+    portfolioMarginal: 20,
+    feasibility: 20,
+    goalAlignment: 15,
+    interestAlignment: 15,
+  }),
   items: z.array(
     z.object({
       title: z.string(),
@@ -145,68 +160,73 @@ export function RecommendationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [replayId, goalParam, usernameParam, interestsParam])
 
+  const weights = result?.weights ?? {
+    originality: 30,
+    portfolioMarginal: 20,
+    feasibility: 20,
+    goalAlignment: 15,
+    interestAlignment: 15,
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Find My Next Project"
-        subtitle="Align candidate projects with your career goals, bridge portfolio gaps, and verify market originality on GitHub."
+        title="Decide What to Build Next"
+        subtitle="Ranked against live GitHub search results & pgvector clusters using deterministic scoring. No speculative LLM hallucination."
       />
 
-      <form onSubmit={submit} className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm">
-        <label className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Primary Goal or Career Objective
-            </span>
-            <span className="text-xs text-muted-foreground">e.g. Land senior backend role, build SaaS</span>
-          </div>
-          <textarea
+      <form onSubmit={submit} className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
+        <div className="space-y-1">
+          <label htmlFor="goal-input" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Your Primary Goal
+          </label>
+          <input
+            id="goal-input"
             value={goal}
             onChange={(e) => setGoal(e.target.value)}
-            rows={2}
-            aria-label="Goal"
-            className="w-full resize-y rounded-lg border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            placeholder="e.g. Build a portfolio piece showing low-level database engine depth"
+            aria-label="Your goal"
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
           />
-        </label>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <label className="flex flex-col gap-1.5">
+          <label className="space-y-1 sm:col-span-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Domains / Tech Interests
+              Topics & Interests (comma-separated)
             </span>
             <input
               value={interests}
               onChange={(e) => setInterests(e.target.value)}
-              placeholder="databases, distributed systems…"
-              aria-label="Interests"
-              className="h-10 rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              placeholder="e.g. databases, distributed systems, wal"
+              aria-label="Topics and interests"
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
           </label>
 
-          <label className="flex flex-col gap-1.5">
+          <label className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              GitHub Profile (Optional Gap Bridge)
+              GitHub Username (Optional)
             </span>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. octocat"
+              placeholder="e.g. torvalds"
               aria-label="GitHub username"
-              className="h-10 rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
             />
           </label>
+        </div>
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Time Commitment Budget
-            </span>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Target timeframe:</span>
             <select
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              aria-label="Duration weeks"
-              className="h-10 rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label="Target timeframe"
+              className="rounded border bg-background px-2 py-1 text-xs text-foreground outline-none"
             >
-              <option value="">Flexible schedule</option>
               {[2, 4, 6, 8, 12].map((weeks) => (
                 <option key={weeks} value={String(weeks)}>
                   {weeks} weeks
@@ -218,7 +238,7 @@ export function RecommendationPage() {
 
         <div className="flex items-center justify-between pt-1">
           <span className="text-xs text-muted-foreground">
-            Ranked with deterministic formula rec-v1 (Goal 30% &bull; Originality 25% &bull; Portfolio 25%)
+            Ranked with deterministic formula rec-v1 (Originality {weights.originality}% &bull; Portfolio {weights.portfolioMarginal}% &bull; Feasibility {weights.feasibility}% &bull; Goal {weights.goalAlignment}% &bull; Interest {weights.interestAlignment}%)
           </span>
           <Button type="submit" disabled={mutation.isPending} className="gap-2 shrink-0">
             <Compass className="h-4 w-4" />
@@ -254,7 +274,7 @@ export function RecommendationPage() {
               <EvidenceBadge
                 type="deterministic"
                 label={`rec-v${result.version}`}
-                subtext="Multi-factor deterministic ranking: Goal 30%, Originality 25%, Portfolio Marginal 25%, Feasibility 10%, Interest 10%"
+                subtext={`Multi-factor deterministic ranking: Originality ${weights.originality}%, Portfolio Marginal ${weights.portfolioMarginal}%, Feasibility ${weights.feasibility}%, Goal ${weights.goalAlignment}%, Interest ${weights.interestAlignment}%`}
               />
               {result.servedFromCache && (
                 <Badge variant="secondary" className="text-[11px]">
@@ -342,18 +362,8 @@ export function RecommendationPage() {
                         <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5 text-xs">
                           <div className="rounded-lg border bg-background p-2.5 space-y-1">
                             <div className="flex justify-between text-[11px]">
-                              <span className="text-muted-foreground">Goal Alignment</span>
-                              <span className="font-semibold">30% wt</span>
-                            </div>
-                            <p className="font-mono text-base font-bold text-foreground">
-                              {Math.round(item.evidence.goalAlignment * 100)}%
-                            </p>
-                          </div>
-
-                          <div className="rounded-lg border bg-background p-2.5 space-y-1">
-                            <div className="flex justify-between text-[11px]">
                               <span className="text-muted-foreground">Originality</span>
-                              <span className="font-semibold">25% wt</span>
+                              <span className="font-semibold">{weights.originality}% wt</span>
                             </div>
                             <p className="font-mono text-base font-bold text-foreground">
                               {Math.round(item.evidence.originality * 100)}%
@@ -363,7 +373,7 @@ export function RecommendationPage() {
                           <div className="rounded-lg border bg-background p-2.5 space-y-1">
                             <div className="flex justify-between text-[11px]">
                               <span className="text-muted-foreground">Portfolio Value</span>
-                              <span className="font-semibold">25% wt</span>
+                              <span className="font-semibold">{weights.portfolioMarginal}% wt</span>
                             </div>
                             <p className="font-mono text-base font-bold text-foreground">
                               {Math.round(item.evidence.portfolioMarginalValue * 100)}%
@@ -373,7 +383,7 @@ export function RecommendationPage() {
                           <div className="rounded-lg border bg-background p-2.5 space-y-1">
                             <div className="flex justify-between text-[11px]">
                               <span className="text-muted-foreground">Feasibility</span>
-                              <span className="font-semibold">10% wt</span>
+                              <span className="font-semibold">{weights.feasibility}% wt</span>
                             </div>
                             <p className="font-mono text-base font-bold text-foreground">
                               {Math.round(item.evidence.feasibility.score * 100)}%
@@ -382,8 +392,18 @@ export function RecommendationPage() {
 
                           <div className="rounded-lg border bg-background p-2.5 space-y-1">
                             <div className="flex justify-between text-[11px]">
+                              <span className="text-muted-foreground">Goal Alignment</span>
+                              <span className="font-semibold">{weights.goalAlignment}% wt</span>
+                            </div>
+                            <p className="font-mono text-base font-bold text-foreground">
+                              {Math.round(item.evidence.goalAlignment * 100)}%
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg border bg-background p-2.5 space-y-1">
+                            <div className="flex justify-between text-[11px]">
                               <span className="text-muted-foreground">Interest Match</span>
-                              <span className="font-semibold">10% wt</span>
+                              <span className="font-semibold">{weights.interestAlignment}% wt</span>
                             </div>
                             <p className="font-mono text-base font-bold text-foreground">
                               {Math.round(item.evidence.interestAlignment * 100)}%

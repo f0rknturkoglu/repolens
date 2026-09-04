@@ -61,4 +61,40 @@ public sealed class ReciprocalRankFusionTests
         var nine = Assert.Single(merged, r => r.RepositoryId == 9);
         Assert.Equal(1, nine.BestRank);
     }
+
+    [Fact]
+    public void Merge_VectorOnly_KeepsItsOrderAndNormalizes()
+    {
+        var merged = ReciprocalRankFusion.Merge([], [101, 102, 103]);
+
+        Assert.Equal([101, 102, 103], merged.Select(r => r.RepositoryId).ToArray());
+        Assert.Equal(1.0, merged[0].Score, precision: 6);
+        Assert.True(merged[0].Score > merged[1].Score);
+        Assert.True(merged[1].Score > merged[2].Score);
+    }
+
+    [Fact]
+    public void Merge_IdenticalLists_PreservesOrderAndRanks()
+    {
+        var merged = ReciprocalRankFusion.Merge([42, 84], [42, 84]);
+
+        Assert.Equal([42, 84], merged.Select(r => r.RepositoryId).ToArray());
+        Assert.Equal(1.0, merged[0].Score, precision: 6);
+        Assert.Equal(1, merged[0].BestRank);
+        Assert.Equal(2, merged[1].BestRank);
+    }
+
+    [Fact]
+    public void Merge_ExactTies_ResolvesDeterministicallyByIdAsc()
+    {
+        // 50 is rank 1 in keyword, rank 2 in vector -> score: k/(k+1) + k/(k+2)
+        // 20 is rank 2 in keyword, rank 1 in vector -> score: k/(k+2) + k/(k+1) (identical sum!)
+        var merged = ReciprocalRankFusion.Merge([50, 20], [20, 50]);
+
+        Assert.Equal(2, merged.Count);
+        Assert.Equal(merged[0].Score, merged[1].Score);
+        // Tie-breaker is repository ID ascending: 20 must come before 50
+        Assert.Equal(20, merged[0].RepositoryId);
+        Assert.Equal(50, merged[1].RepositoryId);
+    }
 }

@@ -77,6 +77,13 @@ public sealed class RecommendationApiTests(PostgresContainerFixture postgres)
             Assert.NotEmpty(i.WhyRankedHere);
             Assert.InRange(i.Score, 0, 1);
         });
+        // Source of truth weights match rec-v1
+        Assert.NotNull(body.Weights);
+        Assert.Equal(30, body.Weights.Originality);
+        Assert.Equal(20, body.Weights.PortfolioMarginal);
+        Assert.Equal(20, body.Weights.Feasibility);
+        Assert.Equal(15, body.Weights.GoalAlignment);
+        Assert.Equal(15, body.Weights.InterestAlignment);
     }
 
     [Fact]
@@ -158,7 +165,17 @@ public sealed class RecommendationApiTests(PostgresContainerFixture postgres)
         public string Version { get; init; } = string.Empty;
         public string Status { get; init; } = string.Empty;
         public bool ServedFromCache { get; init; }
+        public ScoringWeightsJson? Weights { get; init; }
         public List<ItemJson> Items { get; init; } = [];
+
+        public sealed class ScoringWeightsJson
+        {
+            public int Originality { get; init; }
+            public int PortfolioMarginal { get; init; }
+            public int Feasibility { get; init; }
+            public int GoalAlignment { get; init; }
+            public int InterestAlignment { get; init; }
+        }
 
         public sealed class ItemJson
         {
