@@ -54,6 +54,10 @@ builder.Services.AddHealthChecks()
 // --- Typed upstream-error mapping (GitHub rate limits, 5xx, network…). ---
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddProblemDetails();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
 
 // --- Optional GitHub OAuth + signed session cookies (feature off until Auth:CookieKey set). ---
 builder.Services.AddHttpContextAccessor();

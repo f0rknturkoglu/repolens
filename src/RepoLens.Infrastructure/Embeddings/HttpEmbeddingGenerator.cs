@@ -27,7 +27,8 @@ public sealed class HttpEmbeddingGenerator(
     {
         if (!IsConfigured)
         {
-            throw new EmbeddingUnavailableException(null);
+            throw new EmbeddingUnavailableException(new InvalidOperationException(
+                $"Embedding not configured: Model='{options.Value.Model}', BaseUrl='{options.Value.BaseUrl}'"));
         }
 
         try
@@ -51,23 +52,26 @@ public sealed class HttpEmbeddingGenerator(
             using var response = await http.SendAsync(request, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                throw new EmbeddingUnavailableException(null);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new EmbeddingUnavailableException(new HttpRequestException(
+                    $"Embedding endpoint returned {(int)response.StatusCode}: {content}"));
             }
 
             var body = await response.Content.ReadFromJsonAsync<EmbeddingsResponseDto>(
                 EmbeddingJsonOptions, cancellationToken);
             if (body?.Data is null)
             {
-                throw new EmbeddingUnavailableException(null);
+                throw new EmbeddingUnavailableException(new InvalidOperationException("Embeddings response data was null."));
             }
 
             var ordered = body.Data
                 .OrderBy(d => d.Index)
-                .Select(d => d.Embedding ?? throw new EmbeddingUnavailableException(null))
+                .Select(d => d.Embedding ?? throw new EmbeddingUnavailableException(new InvalidOperationException("Embedding vector element was null.")))
                 .ToList();
             if (ordered.Count != texts.Count)
             {
-                throw new EmbeddingUnavailableException(null);
+                throw new EmbeddingUnavailableException(new InvalidOperationException(
+                    $"Embeddings count mismatch: expected {texts.Count}, got {ordered.Count}"));
             }
 
             return ordered;

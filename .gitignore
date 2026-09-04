@@ -6,6 +6,8 @@
 TestResults/
 .vs/
 *.nupkg
+.nuget/
+**/.nuget/
 
 # ---- Node / frontend ----
 node_modules/
