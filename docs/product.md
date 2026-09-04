@@ -1,36 +1,40 @@
 # Product
 
-RepoLens is GitHub Ecosystem Intelligence: it reads public GitHub repositories
-and answers product questions about them with **evidence** — numbers and
-repository citations — instead of vibes.
+RepoLens is **evidence-backed GitHub ecosystem intelligence for developers deciding what to build next**. It surveys public GitHub repositories and answers product decisions with mathematical evidence — verifiable numbers, formula breakdowns, and repository citations — instead of vibes.
 
-## Capabilities
+## Core User Journeys
 
-| Flow | What it answers | Evidence model |
-| --- | --- | --- |
-| Explore GitHub | "Find repositories on GitHub." | discovery results persisted locally by numeric GitHub id, auto-enriched |
-| Repository detail | "What is this repo really?" | README, topics, language distribution, metrics + snapshots, enrichment status |
-| Search RepoLens | "What did *I* collect?" | hybrid keyword + semantic search over RepoLens' own index (RRF) |
-| Similar projects | "What else is like this?" | vector similarity + shared topic/language reasons |
-| Ecosystem analysis | "How does this whole project domain look?" | deterministic clusters + metrics with per-number evidence |
-| Validate an Idea | "Is my idea already done?" | Estimated Novelty (heuristic, versioned), closest competitors, observed gaps — scoped to the analyzed candidate set |
-| Analyze Portfolio | "What does my public profile evidence?" | portfolio **signals** per bounded taxonomy, coverage bands, per-repo evidence (no skill grading) |
-| Find My Next Project | "Which project fits my profile and goal?" | 3 diverse, GitHub-validated candidates ranked deterministically with +/- reasons |
+### 1. Primary Decision Journey: The Builder's Loop
+```
+Idea Concept → Validate Idea (/validate) → Understand Ecosystem (/ecosystem) → Inspect Competitors (/repositories/:id) → Decide What to Build
+```
+- **Entry point:** Builder has a concept (e.g. *"CLI for zero-downtime postgres migrations"*).
+- **Validation:** Multi-query search plan finds competitors; pgvector computes cosine distances; deterministic `novelty-v1` computes an opportunity score (30% closest distance, 25% density, 20% cluster share, 15% active competition, 10% near-duplicate scarcity).
+- **Action Bridges:** Direct one-click jump to `/ecosystem?query=...` to see market clustering or `/recommend?goal=...` to discover adjacent gaps.
 
-## Principles
+### 2. Secondary Growth Journey: The Portfolio Gap Loop
+```
+GitHub Profile → Portfolio Analysis (/portfolio) → Identify Limited Evidence Gaps → Find Next Project (/recommend) → High Marginal Value Project
+```
+- **Entry point:** Developer wants to know what their public repositories demonstrate.
+- **Audit:** Maps repos to `taxonomy-v1` categories into Strong, Moderate, and Limited evidence bands.
+- **Action Bridges:** From any "Limited Evidence" area, click **"Bridge Gap"** to auto-fill `/recommend` with that domain, returning 3 GitHub-checked projects ranked by `rec-v1` marginal portfolio value.
 
-- Every number shown is derivable from stored evidence and re-runnable.
-- "Observed gaps"/novelty statements are scoped to the analyzed candidate set —
-  never claims about all of GitHub.
-- LLMs brainstorm and phrase; they never compute scores and never block the
-  pipeline (deterministic fallbacks everywhere).
-- No fake precision: novelty/feasibility/similarity are shown with simple,
-  coarse presentation.
-- Identity (GitHub OAuth) is optional; all flows work anonymously.
+## Two-Pillar Navigation Structure
 
-## Product language
+1. **Decide What to Build:**
+   - **Validate Idea** (`/validate`) — Idea saturation, closest competitors, observed gaps.
+   - **Ecosystem Landscape** (`/ecosystem`) — Connected components, tech stack shares, market concentration.
+   - **Find Next Project** (`/recommend`) — 3 distinct candidates ranked deterministically.
+2. **Explore & Research:**
+   - **Explore GitHub** (`/discover`) — Query live GitHub and trigger background enrichment workers.
+   - **Search RepoLens Index** (`/search`) — PostgreSQL FTS + pgvector hybrid reciprocal rank fusion (k=60).
+   - **Developer Portfolio** (`/portfolio`) — Map capability signals and compute marginal idea value.
 
-Portfolio analysis produces "signals"/"evidence" and coverage bands
-(strong / moderate / limited) — never skill verdicts like "you don't know X".
-Feasibility is "relative scope estimate (Small…Very Large)", not a schedule.
-Novelty is "Estimated Novelty — heuristic, not a market claim".
+## Principles & Trust Architecture
+
+- **Deterministic & Versioned Formulas:** `novelty-v1`, `marginal-v1`, `rec-v1`, and `taxonomy-v1` use explicit mathematical weights. No LLM computes scores or hallucinates metrics.
+- **Bounded Candidate Sets:** Every claim states candidate set boundaries (e.g. *"Evaluated across 48 candidate repositories gathered via search plan"*). Never claims to index all 400M+ GitHub repositories.
+- **Inspectable Citations:** Competitors and cluster members link directly to GitHub and to local enrichment details.
+- **Strict LLM Boundaries:** LLMs suggest search queries and brainstorm project candidates; all rankings, similarities, and scores are 100% deterministic with robust offline fallbacks.
+
