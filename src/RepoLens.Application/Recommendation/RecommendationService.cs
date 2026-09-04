@@ -235,7 +235,8 @@ public sealed class RecommendationService(
                     TargetUser = candidate.TargetUser,
                     Score = score,
                     WhyRankedHere = BuildWhy(
-                        originality, portfolioMarginal, feasibility, goalAlignment, interestAlignment),
+                        originality, portfolioMarginal, feasibility, goalAlignment, interestAlignment,
+                        landscape.CandidateCount),
                     Evidence = new RecommendationItem.EvidenceBlock
                     {
                         Originality = Math.Round(originality, 3),
@@ -319,10 +320,15 @@ public sealed class RecommendationService(
         double portfolioMarginal,
         Feasibility feasibility,
         double goalAlignment,
-        double interestAlignment)
+        double interestAlignment,
+        int candidateCount)
     {
         var lines = new List<string>();
-        if (originality >= 0.5)
+        if (candidateCount == 0)
+        {
+            lines.Add("No candidate repositories were found; the novelty component has insufficient evidence.");
+        }
+        else if (originality >= 0.5)
         {
             lines.Add($"+ Estimated novelty {Math.Round(originality * 100)}/100 in the analyzed landscape.");
         }
@@ -367,7 +373,7 @@ public sealed class RecommendationService(
 
     private static string Differentiate(CandidateLandscape landscape) =>
         landscape.CandidateCount == 0
-            ? "No overlapping projects were found in the analyzed candidate set — the space reads open."
+            ? "No candidate repositories were found, so there is not enough evidence to claim the space is open."
             : landscape.ActiveCount == 0
                 ? "Most overlapping candidates look inactive; a maintained alternative stands out."
                 : landscape.Density > 0.5

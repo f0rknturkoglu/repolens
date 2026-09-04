@@ -82,7 +82,14 @@ export function ScoreExplainer({
       </div>
 
       {/* Visual progress track */}
-      <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
+      <div
+        role="progressbar"
+        aria-valuenow={normalizedScore}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${title}: ${normalizedScore} out of 100`}
+        className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted"
+      >
         <div
           className={cn('h-full transition-all duration-500 ease-out', colors.bg)}
           style={{ width: `${Math.min(100, Math.max(0, normalizedScore))}%` }}
@@ -97,7 +104,7 @@ export function ScoreExplainer({
           {candidateCount !== undefined ? (
             <>
               Evaluated across <strong>{candidateCount} candidate repositories</strong> gathered
-              through systematic multi-query search and local vector indices.
+              through systematic multi-query GitHub search.
             </>
           ) : (
             <>Evaluated across retrieved candidate repositories in the indexed search space.</>
@@ -151,7 +158,7 @@ export function ScoreExplainer({
 
               <div className="mt-3 rounded border border-dashed p-2.5 text-[11px] text-muted-foreground">
                 <span className="font-medium text-foreground">Methodology Note: </span>
-                Formula strictly combines closest vector distance, high-density cluster penalty, active competition recency, and near-duplicate penalties. Scores are 100% deterministic and reproducible given the same candidate set.
+                Formula strictly combines closest candidate distance, similarity density, cluster dominance, active competition, and near-duplicate scarcity. Scores are deterministic and reproducible given the same candidate set.
               </div>
             </div>
           )}

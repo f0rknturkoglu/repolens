@@ -70,7 +70,7 @@ public sealed class RepositoryDiscoveryService(
             .Select(data => Repository.Create(data, discoveredAt))
             .ToList();
 
-        await repositoryStore.UpsertAsync(repositories, cancellationToken);
+        repositories = (await repositoryStore.UpsertAsync(repositories, cancellationToken)).ToList();
 
         // Never-enriched repositories get an enrichment job; refreshing already
         // enriched ones is an explicit user action.

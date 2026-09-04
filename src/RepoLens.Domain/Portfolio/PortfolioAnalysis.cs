@@ -23,6 +23,7 @@ public sealed class PortfolioAnalysis
     {
         // EF Core materialization.
         Username = string.Empty;
+        Version = CurrentVersion;
     }
 
     private PortfolioAnalysis(string username, DateTimeOffset createdAtUtc)

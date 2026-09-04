@@ -23,6 +23,9 @@ public sealed class RecommendationRequest
         // EF Core materialization.
         Goal = string.Empty;
         RequestHash = string.Empty;
+        InterestsJson = "[]";
+        ConstraintsJson = "{}";
+        Version = CurrentVersion;
     }
 
     private RecommendationRequest(

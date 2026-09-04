@@ -44,7 +44,7 @@ public sealed class CandidateValidator(
                     item.CreatedAt, item.UpdatedAt, item.PushedAt),
                 discoveredAt))
             .ToList();
-        await repositoryStore.UpsertAsync(repositories, cancellationToken);
+        repositories = (await repositoryStore.UpsertAsync(repositories, cancellationToken)).ToList();
 
         if (repositories.Count == 0)
         {

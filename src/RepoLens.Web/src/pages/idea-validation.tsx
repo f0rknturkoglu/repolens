@@ -10,6 +10,8 @@ import {
   Sparkles,
   ArrowRight,
   Search,
+  AlertTriangle,
+  Info,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,6 +24,8 @@ import { z } from 'zod'
 const noveltySchema = z.object({
   score: z.number(),
   formulaVersion: z.string(),
+  candidateCount: z.number().int().nonnegative(),
+  evidenceSufficiency: z.enum(['insufficient', 'limited', 'sufficient']),
   components: z.array(
     z.object({
       key: z.string(),
@@ -182,7 +186,7 @@ export function IdeaValidationPage() {
         />
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">
-            RepoLens formulates a multi-query search plan & scores candidate vectors.
+            RepoLens formulates a multi-query search plan and scores the bounded candidate set.
           </span>
           <Button type="submit" disabled={mutation.isPending} className="gap-2">
             <Radar className="h-4 w-4" />
@@ -196,7 +200,7 @@ export function IdeaValidationPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           <p className="font-medium text-foreground">Executing multi-angle GitHub search plan…</p>
           <p className="max-w-md text-xs">
-            Gathering candidate repositories, computing pgvector cosine embeddings, and calculating deterministic novelty-v1 metrics.
+            Gathering candidate repositories and calculating deterministic novelty-v1 metrics from names, topics, activity, and languages.
           </p>
         </div>
       )}
@@ -239,6 +243,39 @@ export function IdeaValidationPage() {
             <span>Analysis run #{result.id} &bull; {new Date(result.createdAtUtc).toLocaleDateString()}</span>
           </div>
 
+          {/* Evidence Sufficiency Status Banner */}
+          {novelty.evidenceSufficiency === 'insufficient' ? (
+            <div
+              role="status"
+              className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-900 dark:text-amber-200"
+            >
+              <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-xs uppercase tracking-wide">Evidence Sufficiency: Insufficient</span>
+                </div>
+                <p className="text-xs leading-relaxed">
+                  No candidate repositories were found in the evaluated set. A high novelty score in this state reflects absence of observed competition in the query plan, not verified market uniqueness.
+                </p>
+              </div>
+            </div>
+          ) : novelty.evidenceSufficiency === 'limited' ? (
+            <div
+              role="status"
+              className="flex items-start gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 text-blue-900 dark:text-blue-200"
+            >
+              <Info className="h-5 w-5 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-xs uppercase tracking-wide">Evidence Sufficiency: Limited</span>
+                </div>
+                <p className="text-xs leading-relaxed">
+                  Limited candidate evidence: only {novelty.candidateCount} candidate {novelty.candidateCount === 1 ? 'repository was' : 'repositories were'} evaluated for this concept. While novelty signals are computed from this sample, broader searches or alternative keywords may reveal additional competing implementations.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           {/* Primary Score Explainer Component */}
           <ScoreExplainer
             title="Estimated Idea Novelty"
@@ -246,7 +283,7 @@ export function IdeaValidationPage() {
             score={novelty.score}
             formula="novelty-v1"
             band={noveltyBandLabel(novelty.score)}
-            candidateCount={novelty.competitors.length ? undefined : undefined}
+            candidateCount={novelty.candidateCount}
             components={scoreComponents}
           />
 
@@ -256,7 +293,7 @@ export function IdeaValidationPage() {
               <div>
                 <h3 className="text-base font-bold text-foreground">Closest Discovered Competitors</h3>
                 <p className="text-xs text-muted-foreground">
-                  The repositories most semantically and taxonomically overlapping with your concept.
+                  The repositories with the strongest name and topic overlap with your concept.
                 </p>
               </div>
               <EvidenceBadge
@@ -412,7 +449,7 @@ export function IdeaValidationPage() {
                 <EvidenceBadge
                   type="llm-assisted"
                   label="Query Expansion"
-                  subtext="LLMs suggest search queries; results and embeddings are deterministic"
+                  subtext="LLMs suggest search queries; scoring remains deterministic"
                 />
               </div>
 
@@ -482,7 +519,7 @@ export function IdeaValidationPage() {
           <Lightbulb className="mx-auto h-8 w-8 opacity-40" />
           <p className="font-medium text-foreground text-sm">Enter an idea to start validation</p>
           <p className="max-w-md mx-auto">
-            RepoLens will generate a search plan, query GitHub, analyze candidates in pgvector space, and compute an evidence-backed novelty score.
+            RepoLens will generate a search plan, query GitHub, compare the bounded candidate set, and compute an evidence-backed novelty score.
           </p>
         </div>
       )}

@@ -68,7 +68,7 @@ public sealed class HttpLlmClient(
                 throw new LlmUnavailableException(null);
             }
 
-            return new LlmJsonResponse(text, options.Value.Model);
+            return new LlmJsonResponse(text, Model);
         }
         catch (HttpRequestException ex)
         {

@@ -28,7 +28,7 @@ public static class AnalysisEndpoints
                     statusCode: StatusCodes.Status400BadRequest);
             }
 
-            var analysis = await analyses.AnalyzeAsync(request!.Query, cancellationToken);
+            var analysis = await analyses.AnalyzeAsync(request!.Query!, cancellationToken);
             var response = await builder.BuildAsync(analysis.Id, cancellationToken);
             await AnalysisHistorySaver.SaveAsync(
                 sessions, users, "ecosystem", analysis.Id, analysis.Query,

@@ -35,6 +35,15 @@ are shown to users; claims never exceed them.
 - Similarity display (`sim = 1 − cosine_distance/2`) is a monotonic transform
   of cosine similarity — precision beyond one or two decimals is meaningless
   and the UI never shows fake precision.
+- Dense similarity currently uses exact cosine search rather than ANN indexing,
+  so retrieval cost grows with the searchable corpus and should be benchmarked
+  before substantially increasing repository volume.
+
+## Clustering cost
+
+- Pairwise graph construction has quadratic growth with candidate-set size and
+  will eventually become a bottleneck as candidate windows expand; sparse
+  nearest-neighbor candidate generation would be a natural future optimization.
 
 ## LLM boundaries
 

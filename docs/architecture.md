@@ -60,7 +60,7 @@ flowchart LR
 - **Jobs**: PostgreSQL job table; `FOR UPDATE SKIP LOCKED` claims; crash
   recovery sweep; partial unique index (one active job per repository).
 - **Rate limiting**: ASP.NET Core rate limiter — global 300 req/min per client,
-  `expensive` 6 req/min on analyses/refresh/recommendations.
+  `expensive` 20 req/min on analyses/refresh/recommendations.
 - **Observability**: structured JSON logs (Development: console),
   OpenTelemetry tracing/metrics (export opt-in via
   `OTEL_EXPORTER_OTLP_ENDPOINT`); custom meters for enrichment job outcomes +

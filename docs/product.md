@@ -9,7 +9,7 @@ RepoLens is **evidence-backed GitHub ecosystem intelligence for developers decid
 Idea Concept → Validate Idea (/validate) → Understand Ecosystem (/ecosystem) → Inspect Competitors (/repositories/:id) → Decide What to Build
 ```
 - **Entry point:** Builder has a concept (e.g. *"CLI for zero-downtime postgres migrations"*).
-- **Validation:** Multi-query search plan finds competitors; pgvector computes cosine distances; deterministic `novelty-v1` computes an opportunity score (30% closest distance, 25% density, 20% cluster share, 15% active competition, 10% near-duplicate scarcity).
+- **Validation:** A multi-query search plan finds competitors; deterministic topic, name, and language similarity builds the candidate graph; `novelty-v1` computes an opportunity score (30% closest overlap distance, 25% density, 20% cluster share, 15% active competition, 10% near-duplicate scarcity).
 - **Action Bridges:** Direct one-click jump to `/ecosystem?query=...` to see market clustering or `/recommend?goal=...` to discover adjacent gaps.
 
 ### 2. Secondary Growth Journey: The Portfolio Gap Loop
@@ -34,7 +34,6 @@ GitHub Profile → Portfolio Analysis (/portfolio) → Identify Limited Evidence
 ## Principles & Trust Architecture
 
 - **Deterministic & Versioned Formulas:** `novelty-v1`, `marginal-v1`, `rec-v1`, and `taxonomy-v1` use explicit mathematical weights. No LLM computes scores or hallucinates metrics.
-- **Bounded Candidate Sets:** Every claim states candidate set boundaries (e.g. *"Evaluated across 48 candidate repositories gathered via search plan"*). Never claims to index all 400M+ GitHub repositories.
+- **Bounded Candidate Sets:** Every claim states candidate set boundaries (e.g. *"Evaluated across 48 candidate repositories gathered via search plan"*). RepoLens never claims to cover all of GitHub.
 - **Inspectable Citations:** Competitors and cluster members link directly to GitHub and to local enrichment details.
 - **Strict LLM Boundaries:** LLMs suggest search queries and brainstorm project candidates; all rankings, similarities, and scores are 100% deterministic with robust offline fallbacks.
-

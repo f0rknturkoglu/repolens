@@ -18,8 +18,13 @@ Output: a score from 0 to 100 and per-component evidence.
 | 0.10 | Near-duplicate scarcity | `1 − pairs(score ≥ 0.70) / total pairs` |
 
 `score = round(100 * Σ weight·value)`; 100 means the analyzed set showed no
-overlap, one empty-candidate set scores 100 (no observed competition).
-"Estimated Novelty" is a heuristic over the analyzed set — never a market claim.
+overlap. "Estimated Novelty" is a heuristic over the analyzed candidate set — never an absolute market claim.
+
+### Zero-Candidate & Low-Candidate Semantics
+
+- **$N = 0$ Candidates:** If no candidate repositories are retrieved by the search plan, the engine returns a score of 100 with a single component (`key: "candidates"`: *"No candidate repositories were found in the analyzed set"*). The same API object reports `candidateCount: 0` and `evidenceSufficiency: "insufficient"`. In this state, a high novelty score represents **absence of observed competition** in the query plan, **not proof of uniqueness** across all GitHub. The UI displays the same **Insufficient Evidence** state.
+- **$N < 3$ Candidates:** When fewer than 3 candidates are evaluated, the UI flags **Limited Evidence**, indicating that the evaluated sample is small and alternative search keywords may reveal existing solutions.
+- **$N \ge 3$ Candidates:** The full 5-component weighted formula (`novelty-v1`) operates with standard candidate coverage.
 
 ## Portfolio marginal value (`marginal-v1`)
 

@@ -53,8 +53,11 @@ public sealed class EcosystemAnalysisApiTests(PostgresContainerFixture postgres)
     public async Task Analyze_DeduplicatesCandidatesAcrossVariantsAndPersistsSnapshot()
     {
         await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
+        await Enrichment.EnrichmentTestData.InsertRepositoryAsync(_wipe, 96001);
+        await Enrichment.EnrichmentTestData.InsertRepositoryAsync(_wipe, 96002);
         using var mock = new GitHubApiMock();
-        // exact variant returns A+B; topic variant returns B+C (B overlaps); broad returns C+A.
+        // A+B already exist in persistence. The analysis must reuse their canonical
+        // database ids while deduplicating overlaps across all three variants.
         MockVariant(mock, "postgres migration", 96001, 96002);
         MockVariant(mock, "topic:postgres topic:migration", 96002, 96003);
         MockVariant(mock, "postgres migration in:name,description,readme", 96003, 96001);

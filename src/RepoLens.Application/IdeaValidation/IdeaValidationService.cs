@@ -156,7 +156,7 @@ public sealed class IdeaValidationService(
                         item.CreatedAt, item.UpdatedAt, item.PushedAt),
                     discoveredAt))
                 .ToList();
-            await repositoryStore.UpsertAsync(repositories, cancellationToken);
+            repositories = (await repositoryStore.UpsertAsync(repositories, cancellationToken)).ToList();
 
             var rank = 1;
             foreach (var repository in repositories)

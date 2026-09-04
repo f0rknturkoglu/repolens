@@ -31,7 +31,7 @@ export function HomePage() {
           <EvidenceBadge
             type="deterministic"
             label="novelty-v1 &bull; marginal-v1"
-            subtext="Scored deterministically using pgvector cosine distance and connected graph components"
+            subtext="Scored deterministically from bounded candidate evidence and connected graph components"
           />
           <span className="text-xs text-muted-foreground">•</span>
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -123,7 +123,7 @@ export function HomePage() {
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-[11px]">
                     2
                   </span>
-                  <span>Extract embeddings & compute cosine distance to candidates</span>
+                  <span>Compare candidate names, topics, and primary languages</span>
                 </div>
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-[11px]">

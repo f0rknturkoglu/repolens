@@ -131,9 +131,12 @@ public sealed class RepositoryPersistenceTests(PostgresContainerFixture postgres
 
         var refresh = RepositoryWith(5006, "owner/already-known", stars: 9);
         var brandNew = RepositoryWith(5007, "owner/fresh");
-        await store.UpsertAsync([refresh, brandNew], CancellationToken.None);
+        var persisted = await store.UpsertAsync([refresh, brandNew], CancellationToken.None);
 
         Assert.Equal(2, await db.Repositories.CountAsync());
         Assert.Equal(9, (await db.Repositories.SingleAsync(r => r.GitHubId == 5006)).Stars);
+        Assert.All(persisted, repository => Assert.True(repository.Id > 0));
+        Assert.Equal(existing.Id, persisted[0].Id);
+        Assert.Equal(brandNew.Id, persisted[1].Id);
     }
 }

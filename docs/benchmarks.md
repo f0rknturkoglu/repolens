@@ -1,24 +1,31 @@
-# RepoLens Algorithmic Benchmarks & Empirical Evaluation
+# Reference Benchmark Fixtures
 
-This benchmark report documents the empirical behavior, scoring stability, and explainability of RepoLens' deterministic intelligence engine across six distinct software ecosystem archetypes.
+These six fixture-backed scenarios document the expected behavior of RepoLens' deterministic scoring and clustering algorithms across distinct software-ecosystem shapes. They are reference cases for regression, edge-case validation, and explaining algorithm behavior; they are not production load tests or live GitHub benchmarks.
 
-RepoLens enforces strict boundary guarantees:
-1. **Bounded candidate sets:** Every metric and score is explicitly scoped to the analyzed GitHub candidate set gathered at query execution time. No claims are made about all of GitHub.
-2. **Deterministic scoring:** Scores are computed exclusively by versioned mathematical formulas (`novelty-v1`, `rec-v1`, `marginal-v1`). LLMs never generate, weight, or override numeric scores.
-3. **Reproducible graph clustering:** Similarity graphs and connected components are ordered deterministically by edge weight and repository ID.
+> **Classification notice:** The repository names and metadata below belong to fixed reference inputs calibrated on **2026-09-04**. Live GitHub stars, activity, topics, and search results can change, so a new live analysis is not expected to reproduce the fixture values.
 
 ---
 
-## Evaluation Benchmark Archetypes
+## Methodology
 
-| # | Archetype | Concept Query | Candidate Count ($N$) | Top Match Overlap | Novelty Score (`novelty-v1`) | Latency (Cold / Cache) |
-|---|---|---|---|---|---|---|
-| **1** | **Saturated Space** | React component UI library with Tailwind CSS | 42 repos | 0.88 (shadcn-ui/ui) | **14 / 100** | 1,420 ms / 4 ms |
-| **2** | **Niche Space** | PostgreSQL schema-migration load-testing harness | 18 repos | 0.42 (stripe/pg-schema-diff) | **68 / 100** | 1,180 ms / 3 ms |
-| **3** | **Closely Matched** | Fast embedded full-text search engine in Rust | 35 repos | 0.76 (quickwit-oss/tantivy) | **28 / 100** | 1,310 ms / 4 ms |
-| **4** | **Highly Novel** | CRDT-based collaborative audio workstation over WebRTC | 8 repos | 0.18 (basetenlabs/audiocraft) | **91 / 100** | 890 ms / 2 ms |
-| **5** | **Noisy / Broad** | Cloud sync tool | 50 repos | 0.35 (rclone/rclone) | **41 / 100** | 1,560 ms / 5 ms |
-| **6** | **Multi-Language** | Zero-knowledge proof circuit compiler and verifier | 29 repos | 0.54 (iden3/circom) | **56 / 100** | 1,240 ms / 3 ms |
+- **Fixture source:** Fixed candidate attributes calibrated from representative GitHub search snapshots on **2026-09-04**.
+- **Reproduction:** Re-evaluating the same captured inputs with the same formula version produces deterministic scores and ordering. Live GitHub queries are intentionally outside that guarantee.
+- **Scoring boundary:** Numeric values come only from versioned deterministic formulas (`novelty-v1`, `rec-v1`); LLM-generated text does not set scores or weights.
+- **Purpose:** The fixtures exercise saturated, niche, close-match, sparse, broad/noisy, and multi-language candidate sets.
+- **Performance scope:** No latency or capacity conclusion is drawn from these fixtures. Any local timing must report sample count, hardware/runtime, cold-versus-warm conditions, median, and p95 before it is presented as a benchmark; local results are not production SLAs.
+
+---
+
+## Algorithmic Reference Scenarios
+
+| # | Archetype | Fixture Candidate Count ($N$) | Top Match Overlap | Expected Novelty (`novelty-v1`) |
+|---|---|---|---|---|
+| **1** | **Saturated Space** | 42 repos | 0.88 (shadcn-ui/ui) | **25 / 100** |
+| **2** | **Niche Space** | 18 repos | 0.42 (stripe/pg-schema-diff) | **68 / 100** |
+| **3** | **Closely Matched** | 35 repos | 0.76 (quickwit-oss/tantivy) | **28 / 100** |
+| **4** | **Highly Novel** | 8 repos | 0.18 (basetenlabs/audiocraft) | **91 / 100** |
+| **5** | **Noisy / Broad** | 50 repos | 0.35 (rclone/rclone) | **41 / 100** |
+| **6** | **Multi-Language** | 29 repos | 0.54 (iden3/circom) | **56 / 100** |
 
 ---
 
@@ -44,7 +51,7 @@ RepoLens enforces strict boundary guarantees:
   - Active Competitor Scarcity (Weight 15%): 31 active within 90 days → `clamp(1 - 31/20, 0, 1) = 0.00` → **0.0 pts**
   - Near-Duplicate Scarcity (Weight 10%): 38% of pairs have similarity $\ge 0.70$ → `1 - 0.38 = 0.62` → **6.2 pts**
 - **Calculated Novelty Score:** `round(100 * (0.036 + 0.090 + 0.058 + 0.000 + 0.062)) =` **25 / 100** *(Crowded space)*.
-- **Observed Behavior:** The engine correctly rejects saturation, warning the builder that major established alternatives dominate the space and clustering is tightly centered around a single dominant pattern.
+- **Expected Behavior:** The score reflects the fixture's high overlap, active competition, and dominant cluster without making a claim beyond the captured candidate set.
 
 ---
 
@@ -68,7 +75,7 @@ RepoLens enforces strict boundary guarantees:
   - Active Competitor Scarcity (Weight 15%): 6 active competitors → `1 - 6/20 = 0.70` → **10.5 pts**
   - Near-Duplicate Scarcity (Weight 10%): Only 8% near-duplicate pairs → `1 - 0.08 = 0.92` → **9.2 pts**
 - **Calculated Novelty Score:** `round(100 * (0.174 + 0.180 + 0.134 + 0.105 + 0.092)) =` **68 / 100** *(Mostly open space)*.
-- **Observed Behavior:** Existing tools handle schema diffing or migration linters, but zero tools in the evaluated set specifically handle load-testing and traffic replay during DDL execution. The system identifies a genuine unserved differentiation gap.
+- **Expected Behavior:** The fixture contains schema-diff and migration-linting tools but less evidence for load testing and traffic replay during DDL execution, producing a candidate-scoped gap hypothesis.
 
 ---
 
@@ -85,7 +92,7 @@ RepoLens enforces strict boundary guarantees:
   2. `meilisearch/meilisearch` (Stars: 46.2k, Overlap: 0.62, Shared: `rust`, `search`)
   3. `valeriansaliou/sonic` (Stars: 19.5k, Overlap: 0.51, Shared: `rust`, `search`)
 - **Calculated Novelty Score:** **28 / 100** *(Partially explored / crowded)*.
-- **Observed Behavior:** Tantivy directly implements an embedded Rust full-text engine with BM25. The overlap reasons clearly cite shared tokens (`bm25`, `search`, `embedded`). RepoLens prevents the user from building an unintentional clone without realizing an industry standard exists.
+- **Expected Behavior:** Tantivy is surfaced as the closest fixture match, with overlap reasons citing shared tokens such as `bm25`, `search`, and `embedded`.
 
 ---
 
@@ -103,7 +110,7 @@ RepoLens enforces strict boundary guarantees:
   3. `feross/simple-peer` (Stars: 7.2k, Overlap: 0.14, Shared: `webrtc`)
 - **Calculated Novelty Score:** **91 / 100** *(Mostly open space)*.
 - **Candidate Set Boundary Note:** "No overlapping repositories were found in the analyzed candidate set matching the complete multi-track audio CRDT concept (8 signal points evaluated via search plan)."
-- **Observed Behavior:** Components are present in isolation (CRDT libraries, WebRTC wrappers, basic synths), but the intersection is completely unpopulated in the evaluated candidate set.
+- **Expected Behavior:** The fixture contains component technologies in isolation but little evidence for their combined use; the high score remains bounded to those eight candidates.
 
 ---
 
@@ -119,7 +126,7 @@ RepoLens enforces strict boundary guarantees:
   2. `syncthing/syncthing` (Stars: 64.2k, Overlap: 0.32)
   3. `owncloud/core` (Stars: 8.9k, Overlap: 0.28)
 - **Calculated Novelty Score:** **41 / 100** *(Broad / partially explored)*.
-- **Observed Behavior:** Low similarity density between candidates (rclone vs syncthing vs owncloud have different architectures). The graph decomposes into 9 disconnected clusters. RepoLens warns that broad queries lack specific differentiation keywords and produce distributed clusters.
+- **Expected Behavior:** Low similarity density and nine disconnected fixture clusters expose the ambiguity of a broad query.
 
 ---
 
@@ -137,13 +144,13 @@ RepoLens enforces strict boundary guarantees:
   2. `arkworks-rs/snark` (Stars: 1.4k, Overlap: 0.49, Language: Rust)
   3. `consensys/gnark` (Stars: 2.8k, Overlap: 0.46, Language: Go)
 - **Calculated Novelty Score:** **56 / 100** *(Partially explored space)*.
-- **Observed Behavior:** Clusterizer successfully segments candidates into language-native clusters ("Rust projects", "Go projects", "C++ projects") with distinct centrality leaders.
+- **Expected Behavior:** The clusterizer segments the fixed candidates into language-oriented connected components with deterministic centrality ordering.
 
 ---
 
-## Summary of Algorithmic Invariants Verified
+## Reference Invariants
 
-1. **Monotonicity:** Adding identical or near-duplicate repositories to the candidate set strictly decreases the novelty score.
-2. **Determinism:** Across 100 repeated executions on static candidate sets, the score variance is exactly $\sigma^2 = 0.000$.
-3. **Boundedness:** Every score is strictly clamped in $[0, 100]$ for `novelty-v1` and $[0, 1]$ for `rec-v1`.
-4. **Cache Invariance:** Identical normalized inputs return byte-identical results served from PostgreSQL in $\le 5\text{ ms}$.
+1. **Saturation sensitivity:** Near-duplicate and densely connected fixtures score lower than sparse fixtures.
+2. **Determinism:** Static inputs and a fixed formula version produce the same score and ordering.
+3. **Boundedness:** Scores remain in $[0, 100]$ for `novelty-v1` and $[0, 1]$ for `rec-v1`.
+4. **Replay behavior:** Integration tests verify that identical normalized requests reuse the stored PostgreSQL snapshot without another GitHub search; no latency SLA is inferred.

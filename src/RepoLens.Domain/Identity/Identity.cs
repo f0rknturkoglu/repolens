@@ -55,6 +55,8 @@ public sealed class SavedAnalysis
         // EF Core materialization.
         Kind = string.Empty;
         Title = string.Empty;
+        Status = string.Empty;
+        Version = string.Empty;
     }
 
     public SavedAnalysis(

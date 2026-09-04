@@ -67,6 +67,8 @@ public sealed class IdeaValidationApiTests(PostgresContainerFixture postgres)
         Assert.False(body.ServedFromCache);
         Assert.NotNull(body.Novelty);
         Assert.InRange(body.Novelty.Score, 0, 100);
+        Assert.Equal(2, body.Novelty.CandidateCount);
+        Assert.Equal("limited", body.Novelty.EvidenceSufficiency);
         Assert.NotEmpty(body.Novelty.Components);
         Assert.Equal(100, body.Novelty.Components.Sum(c => c.WeightPercent));
         Assert.Equal("novelty-v1", body.Novelty.FormulaVersion);
@@ -153,6 +155,29 @@ public sealed class IdeaValidationApiTests(PostgresContainerFixture postgres)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Validate_NoCandidates_ExposesInsufficientEvidenceAlongsideHighNovelty()
+    {
+        await using var _wipe = await Enrichment.EnrichmentTestData.CreateCleanContextAsync(postgres.ConnectionString);
+        using var mock = new GitHubApiMock();
+        MockAnySearch(mock);
+
+        await using var application = new ApiApplication(
+            postgres.ConnectionString,
+            web => web.UseSetting("GitHub:BaseUrl", mock.BaseUrl));
+        using var client = application.CreateClient();
+
+        using var response = await client.PostAsJsonAsync("/api/analysis/idea", new { idea = "unrepresented test concept" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<IdeaResponseJson>();
+        Assert.NotNull(body?.Novelty);
+        Assert.Equal(100, body.Novelty.Score);
+        Assert.Equal(0, body.Novelty.CandidateCount);
+        Assert.Equal("insufficient", body.Novelty.EvidenceSufficiency);
+        Assert.Contains(body.Novelty.Components, component => component.Key == "candidates");
+    }
+
     private sealed class IdeaResponseJson
     {
         public long Id { get; init; }
@@ -167,6 +192,8 @@ public sealed class IdeaValidationApiTests(PostgresContainerFixture postgres)
         {
             public double Score { get; init; }
             public string FormulaVersion { get; init; } = string.Empty;
+            public int CandidateCount { get; init; }
+            public string EvidenceSufficiency { get; init; } = string.Empty;
             public List<ComponentJson> Components { get; init; } = [];
         }
 

@@ -24,6 +24,8 @@ public sealed class IdeaValidationResponse
     {
         public required double Score { get; init; }
         public required string FormulaVersion { get; init; }
+        public required int CandidateCount { get; init; }
+        public required string EvidenceSufficiency { get; init; }
         public required IReadOnlyList<ComponentDto> Components { get; init; }
         public required IReadOnlyList<CompetitorDto> Competitors { get; init; }
     }
@@ -86,16 +88,26 @@ public sealed class IdeaValidationResultBuilder(
         IReadOnlyList<IdeaValidationResponse.ClusterSummaryDto>? clusters = null;
         var evidence = new List<string>();
         IReadOnlyList<IdeaValidationResponse.GapHypothesisDto>? gaps = null;
+        EcosystemMetrics? metrics = null;
+
+        if (validation.MetricsJson is not null && validation.MetricsJson != "null")
+        {
+            metrics = EcosystemMetricsCalculator.Deserialize(validation.MetricsJson);
+            evidence.AddRange(metrics.Evidence);
+        }
 
         if (validation.NoveltyJson is not null)
         {
             var storedNovelty = JsonSerializer.Deserialize<NoveltyResult>(validation.NoveltyJson, JsonOptions);
             if (storedNovelty is not null)
             {
+                var candidateCount = metrics?.CandidateCount ?? 0;
                 novelty = new IdeaValidationResponse.NoveltyDto
                 {
                     Score = storedNovelty.Score,
                     FormulaVersion = storedNovelty.FormulaVersion,
+                    CandidateCount = candidateCount,
+                    EvidenceSufficiency = EvidenceSufficiencyFor(candidateCount),
                     Components = storedNovelty.Components
                         .Select(c => new IdeaValidationResponse.ComponentDto
                         {
@@ -126,12 +138,6 @@ public sealed class IdeaValidationResultBuilder(
         if (validation.SearchPlanJson is not null)
         {
             plan = JsonSerializer.Deserialize<List<IdeaValidationResponse.PlanQueryDto>>(validation.SearchPlanJson, JsonOptions);
-        }
-
-        if (validation.MetricsJson is not null && validation.MetricsJson != "null")
-        {
-            var metrics = EcosystemMetricsCalculator.Deserialize(validation.MetricsJson);
-            evidence.InsertRange(0, metrics.Evidence);
         }
 
         if (validation.ClustersJson is not null && validation.ClustersJson != "[]")
@@ -195,6 +201,13 @@ public sealed class IdeaValidationResultBuilder(
         "concept_redundancy" => IdeaNoveltyScorer.WeightConceptRedundancyPercent,
         "candidates" => 100,
         _ => 20,
+    };
+
+    private static string EvidenceSufficiencyFor(int candidateCount) => candidateCount switch
+    {
+        0 => "insufficient",
+        < 3 => "limited",
+        _ => "sufficient",
     };
 
     private sealed class StoredCluster

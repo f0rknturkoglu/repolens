@@ -31,8 +31,9 @@ Embeddings are stored in the same row (`embedding vector`, model + content hash
 alongside). A vector is **stale** when its hash differs from the document
 content hash or its model differs from the configured model — the worker
 backfills stale vectors on a bounded budget. Search scopes vector legs to rows
-of the current model. No HNSW/IVFFlat index yet: the dataset is small and exact
-cosine search is measured before adding an index (roadmap Phase 3).
+of the current model. No HNSW/IVFFlat index is configured. Dense similarity
+currently uses exact cosine search, so retrieval cost grows with the searchable
+corpus and should be benchmarked before repository volume is increased substantially.
 
 ## Hybrid merge: Reciprocal Rank Fusion
 
@@ -48,3 +49,19 @@ merged with RRF: `score_i = Σ k / (k + rank_in_leg)` with `k = 60`; ties break 
 repository id; the same repository in both legs is a single result with its
 best rank recorded. Scores are normalized by the maximum (best hit = 1.0).
 Deterministic, no LLM, documented weights.
+
+### Mathematical Relationship to Standard RRF
+
+Standard Cormack et al. (2009) Reciprocal Rank Fusion defines:
+
+$$\text{RRF}(d) = \sum_{m \in M} \frac{1}{k + r_m(d)}$$
+
+In RepoLens (`ReciprocalRankFusion.cs`), each term is weighted by $k$:
+
+$$\text{score}(d) = \sum_{m \in M} \frac{k}{k + r_m(d)} = k \cdot \sum_{m \in M} \frac{1}{k + r_m(d)} = k \cdot \text{RRF}(d)$$
+
+Because $k$ is a constant positive integer ($k=60$):
+1. **Rank preservation:** The relative ranking order of all items is mathematically identical to standard Cormack RRF.
+2. **Cancellation upon normalization:** Since scores are normalized by dividing by $\max_{x}(\text{score}(x))$:
+   $$\frac{\text{score}(d)}{\max_x \text{score}(x)} = \frac{k \cdot \text{RRF}(d)}{k \cdot \max_x \text{RRF}(x)} = \frac{\text{RRF}(d)}{\max_x \text{RRF}(x)}$$
+   The constant $k$ cancels out entirely, yielding the exact normalized score of standard RRF.

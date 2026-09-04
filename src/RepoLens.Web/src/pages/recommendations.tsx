@@ -172,7 +172,7 @@ export function RecommendationPage() {
     <div className="space-y-6">
       <PageHeader
         title="Decide What to Build Next"
-        subtitle="Ranked against live GitHub search results & pgvector clusters using deterministic scoring. No speculative LLM hallucination."
+        subtitle="Ranked against bounded GitHub candidate evidence using deterministic scoring; LLMs only brainstorm candidate ideas."
       />
 
       <form onSubmit={submit} className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
@@ -252,7 +252,7 @@ export function RecommendationPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           <p className="font-medium text-foreground">Brainstorming candidate ideas & checking GitHub competition…</p>
           <p className="max-w-md text-xs">
-            Evaluating candidate pools in pgvector, scoring marginal portfolio value, and computing deterministic rec-v1 scores.
+            Evaluating bounded candidate pools, scoring marginal portfolio value, and computing deterministic rec-v1 scores.
           </p>
         </div>
       )}
@@ -413,6 +413,9 @@ export function RecommendationPage() {
 
                         <p className="text-[11px] text-muted-foreground">
                           Candidate pool: Checked against {item.evidence.landscape.candidateCount} candidate repositories discovered on GitHub.
+                          {item.evidence.landscape.candidateCount === 0 && (
+                            <span className="font-semibold text-amber-700 dark:text-amber-300"> Evidence is insufficient to infer uniqueness.</span>
+                          )}
                           {item.evidence.landscape.competitors.length > 0 && (
                             <span> Closest existing repos: {item.evidence.landscape.competitors.join(', ')}.</span>
                           )}
@@ -491,7 +494,7 @@ export function RecommendationPage() {
           <Sparkles className="mx-auto h-8 w-8 opacity-40" />
           <p className="font-medium text-foreground text-sm">Define your goal to get ranked project recommendations</p>
           <p className="max-w-md mx-auto">
-            RepoLens generates distinct concepts, checks existing GitHub competition in pgvector space, and scores marginal value for your portfolio.
+            RepoLens generates distinct concepts, checks a bounded set of GitHub candidates, and scores marginal value for your portfolio.
           </p>
         </div>
       )}

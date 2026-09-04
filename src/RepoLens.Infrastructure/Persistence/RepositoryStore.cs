@@ -14,13 +14,13 @@ namespace RepoLens.Infrastructure.Persistence;
 /// </summary>
 public sealed class RepositoryStore(RepoLensDbContext db) : IRepositoryStore, IRepositoryDetailReader
 {
-    public async Task UpsertAsync(
+    public async Task<IReadOnlyList<Repository>> UpsertAsync(
         IReadOnlyList<Repository> repositories,
         CancellationToken cancellationToken)
     {
         if (repositories.Count == 0)
         {
-            return;
+            return [];
         }
 
         var gitHubIds = repositories.Select(r => r.GitHubId).ToHashSet();
@@ -37,10 +37,12 @@ public sealed class RepositoryStore(RepoLensDbContext db) : IRepositoryStore, IR
             else
             {
                 db.Repositories.Add(repository);
+                existing.Add(repository.GitHubId, repository);
             }
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        return repositories.Select(repository => existing[repository.GitHubId]).ToList();
     }
 
     public async Task<RepositoryDetailSource?> GetAsync(

@@ -45,7 +45,7 @@ GitHub error text is never forwarded.
 
 | Method | Route | Purpose | Auth | Frontend consumer |
 | --- | --- | --- | --- | --- |
-| POST | `/api/analysis/idea` | Bounded search plan (LLM-assisted with deterministic fallback) → candidates → novelty-v1 score + components, competitors, gaps, limitations; 24h cache keyed by normalized idea. Returns `servedFromCache`. Rate limit: `expensive`. | — | `/validate` |
+| POST | `/api/analysis/idea` | Bounded search plan (LLM-assisted with deterministic fallback) → candidates → novelty-v1 score + components, competitors, gaps, limitations; 24h cache keyed by normalized idea. Returns `servedFromCache`, the actual `candidateCount`, and `evidenceSufficiency` (`insufficient`, `limited`, or `sufficient`) so a score of 100 with no candidates cannot be mistaken for verified uniqueness. Rate limit: `expensive`. | — | `/validate` |
 | GET | `/api/analysis/idea/{id}` | Replay a stored validation. | — | `/validate?id=…` (history) |
 
 ## Portfolio Intelligence

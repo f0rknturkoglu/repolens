@@ -24,6 +24,7 @@ public sealed class IdeaValidation
         // EF Core materialization.
         IdeaText = string.Empty;
         IdeaHash = string.Empty;
+        Version = CurrentVersion;
     }
 
     private IdeaValidation(string ideaText, string ideaHash, DateTimeOffset createdAtUtc)

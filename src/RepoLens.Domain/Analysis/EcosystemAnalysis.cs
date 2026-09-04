@@ -32,6 +32,7 @@ public sealed class EcosystemAnalysis
     {
         // EF Core materialization.
         Query = string.Empty;
+        Version = CurrentVersion;
     }
 
     private EcosystemAnalysis(string query, DateTimeOffset createdAtUtc)

@@ -111,10 +111,10 @@ public static class CandidateGenerator
             var candidates = parsed?.Ideas
                 ?.Where(i => IsUsableText(i.Title) && IsUsableText(i.Summary))
                 .Select(i => new GeneratedCandidate(
-                    Clean(i.Title),
-                    Clean(i.Summary),
-                    Clean(i.Problem),
-                    Clean(i.TargetUser),
+                    Clean(i.Title!),
+                    Clean(i.Summary!),
+                    Clean(i.Problem ?? string.Empty),
+                    Clean(i.TargetUser ?? string.Empty),
                     GuessCategory($"{i.Title} {i.Summary}")))
                 .ToList() ?? [];
             return candidates.Count > 0 ? candidates.Take(MaxCandidates).ToList() : fallback;

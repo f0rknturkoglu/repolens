@@ -4,6 +4,8 @@
 *.user
 *.suo
 TestResults/
+BenchmarkDotNet.Artifacts/
+benchmark-results/
 .vs/
 *.nupkg
 .nuget/
@@ -26,6 +28,11 @@ dist/
 *.swp
 .DS_Store
 Thumbs.db
+*.log
+*.tmp
+*.db
+*.sqlite
+*.sqlite3
 
 # ---- Build artifacts from Docker contexts ----
 docker/postgres/data/

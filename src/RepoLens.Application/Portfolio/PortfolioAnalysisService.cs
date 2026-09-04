@@ -71,7 +71,7 @@ public sealed class PortfolioAnalysisService(
                         d.IsArchived, d.IsFork, d.LicenseSpdx, d.CreatedAt, d.UpdatedAt, d.PushedAt),
                     discoveredAt))
                 .ToList();
-            await repositoryStore.UpsertAsync(repositories, cancellationToken);
+            repositories = (await repositoryStore.UpsertAsync(repositories, cancellationToken)).ToList();
 
             var repoById = repositories.ToDictionary(r => r.GitHubId);
             var portfolioRepos = details.Select(d => new PortfolioRepo(

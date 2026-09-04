@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RepoLens.Domain.Analysis;
 using RepoLens.Domain.Discovery;
-using RepoLens.Domain.Analysis;
 using RepoLens.Domain.Enrichment;
 using RepoLens.Domain.Searching;
 using RepoLens.Infrastructure.Persistence.Configurations;

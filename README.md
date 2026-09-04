@@ -5,11 +5,11 @@
 [![PostgreSQL 17 + pgvector](https://img.shields.io/badge/PostgreSQL-17_%2B_pgvector-336791?logo=postgresql)](https://github.com/pgvector/pgvector)
 [![Architecture](https://img.shields.io/badge/Architecture-Modular_Monolith-emerald)](#architecture)
 [![Deterministic Scoring](https://img.shields.io/badge/Scoring-Deterministic_%26_Versioned-blue)](#scoring-and-evidence-methodology)
-[![Tests](https://img.shields.io/badge/Tests-87_Unit_%7C_70_Integration-success)](#automated-testing-and-verification)
+[![Tests](https://img.shields.io/badge/Tests-93_Unit_%7C_71_Integration-success)](#automated-testing-and-verification)
 
-**RepoLens** is an evidence-backed GitHub ecosystem intelligence engine that helps software engineers and technical founders decide **what to build next**.
+**RepoLens** is an evidence-backed GitHub ecosystem analysis platform that helps software engineers and technical founders decide **what to build next**.
 
-Instead of relying on vanity star metrics or hallucinated LLM flattery, RepoLens conducts bounded GitHub ecosystem searches, builds an in-database similarity graph, and computes deterministic, mathematically explainable scores on idea saturation, competitor proximity, and portfolio value.
+It runs bounded GitHub searches, builds candidate similarity graphs, and computes deterministic, explainable scores for idea saturation, competitor proximity, and portfolio value. PostgreSQL full-text search and pgvector cosine similarity provide hybrid retrieval through Reciprocal Rank Fusion, while LLMs are limited to query expansion and candidate-idea generation.
 
 ---
 
@@ -17,7 +17,7 @@ Instead of relying on vanity star metrics or hallucinated LLM flattery, RepoLens
 
 Every week, developers and engineering teams start open-source projects or developer tools without understanding the competitive landscape:
 - **The GitHub Star Fallacy:** Stars reflect historical virality, not ongoing maintenance or current architecture. A project with 15k stars may be unmaintained for 3 years, leaving an open niche for a modern alternative.
-- **LLM Hallucination & Sycophancy:** Generic AI chat models invariably praise any project idea as "innovative" without verifying existing implementations or inspecting GitHub dependency trees.
+- **LLM Hallucination & Sycophancy:** General-purpose AI output can praise a project idea without first verifying existing implementations or inspecting relevant repositories.
 - **Unbounded Claims:** Existing search tools make sweeping generalizations ("nothing like this exists") without identifying the exact evaluated candidate set.
 
 RepoLens enforces **"Conclusion → Why → Evidence → Methodology"**:
@@ -48,7 +48,7 @@ RepoLens enforces **"Conclusion → Why → Evidence → Methodology"**:
 ### Pillar 2: Explore & Research
 - **Ecosystem Intelligence (`/ecosystem`):** Maps connected-component project clusters, market concentration, language distributions, and maintenance velocity for any software domain.
 - **Hybrid Search Engine (`/search`):** Combines PostgreSQL full-text search (`tsvector`) and dense vector similarity (`pgvector`) fused via **Reciprocal Rank Fusion ($k=60$)**.
-- **Repository Deep Dive (`/repositories/:id`):** Enriched metadata, README analysis, topic vectors, and similar project recommendations.
+- **Repository Deep Dive (`/repositories/:id`):** Enriched metadata, normalized README content, topics, language shares, and similar project recommendations.
 
 ---
 
@@ -141,13 +141,13 @@ $$\text{Score} = 0.30 \cdot \text{Originality} + 0.20 \cdot \text{PortfolioMargi
 3. **Start the React frontend:**
    ```bash
    cd src/RepoLens.Web
-   npm install
+   npm ci
    npm run dev
    # Vite dev server listening on http://localhost:5173
    ```
 
 ### Full Stack via Docker Compose
-To run the entire production-grade stack (PostgreSQL + API + Nginx SPA) in containers:
+To run the full multi-container deployment stack (PostgreSQL + API + Nginx SPA) in containers:
 ```bash
 docker compose --profile full up --build
 # Web application available at http://localhost:8080
@@ -157,7 +157,7 @@ docker compose --profile full up --build
 
 ## Automated Testing and Verification
 
-RepoLens maintains a rigorous, zero-flakiness test suite:
+RepoLens is covered by pure unit tests and containerized PostgreSQL integration tests:
 
 ```bash
 # 1. Build the solution
@@ -165,11 +165,11 @@ dotnet build RepoLens.sln
 
 # 2. Run unit tests (Pure algorithmic logic, scorers, clustering, RRF)
 dotnet test tests/RepoLens.UnitTests
-# Passed: 87/87
+# Passed: 93/93
 
 # 3. Run integration tests (Testcontainers PostgreSQL + WireMock.Net)
 dotnet test tests/RepoLens.IntegrationTests
-# Passed: 70/70 (Requires Docker daemon)
+# Passed: 71/71 (Requires Docker daemon; total 164/164 passing)
 
 # 4. Verify frontend contracts, types, and styles
 cd src/RepoLens.Web
@@ -183,7 +183,7 @@ npm run build       # Production bundle build
 ## Documentation Index
 
 - [**Technical Case Study**](docs/case-study.md) — Comprehensive deep-dive on architectural decisions, trade-offs, resilience, and quantifiable impact.
-- [**Algorithmic Benchmarks**](docs/benchmarks.md) — Empirical evaluation of 6 real-world software archetypes (saturated, niche, novel, noisy, etc.).
+- [**Reference Benchmark Fixtures**](docs/benchmarks.md) — Six deterministic scenarios for regression, edge-case validation, and algorithm behavior.
 - [**Scoring Formulas**](docs/scoring.md) — Mathematical definitions of `novelty-v1`, `marginal-v1`, `rec-v1`, and `taxonomy-v1`.
 - [**Search & Ranking**](docs/search-ranking.md) — FTS weights, dense vector cosine similarity, and RRF $k=60$ details.
 - [**Analysis Limitations**](docs/analysis-limitations.md) — Candidate set boundary declarations and non-claims.
