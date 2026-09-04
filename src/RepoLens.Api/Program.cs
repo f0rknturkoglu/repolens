@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -47,6 +48,22 @@ var enrichmentSettings = builder.Configuration
 builder.Services.AddApplication(enrichmentSettings);
 builder.Services.AddInfrastructure(connectionString);
 
+var trustForwardedHeaders = builder.Configuration.GetValue<bool>("ReverseProxy:TrustForwardedHeaders");
+if (trustForwardedHeaders)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.ForwardLimit = 1;
+
+        // The full-stack API has no host port and accepts traffic only from its
+        // compose network. Dynamic nginx container addresses therefore form the
+        // trusted proxy boundary when this deployment-only switch is enabled.
+        options.KnownProxies.Clear();
+        options.KnownIPNetworks.Clear();
+    });
+}
+
 // --- Health checks: /health reports 200 only when the API can reach PostgreSQL. ---
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<RepoLensDbContext>("database");
@@ -70,7 +87,7 @@ builder.Services.AddSingleton(builder.Configuration
 builder.Services.AddScoped<AuthSessionService>();
 
 // --- Rate limiting: cheap global default; "expensive" policy protects costly
-// analysis/refresh endpoints (6/min per client). ---
+// analysis/refresh endpoints (20/min per client). ---
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -84,12 +101,16 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 Window = TimeSpan.FromMinutes(1),
             }));
-    options.AddFixedWindowLimiter("expensive", policy =>
-    {
-        policy.PermitLimit = 20;
-        policy.Window = TimeSpan.FromMinutes(1);
-        policy.QueueLimit = 0;
-    });
+    options.AddPolicy("expensive", context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            ClientKey(context),
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 20,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1),
+            }));
 });
 
 // --- OpenTelemetry (export opt-in via OTEL_EXPORTER_OTLP_ENDPOINT). ---
@@ -116,6 +137,11 @@ builder.Services.AddHostedService<EnrichmentWorker>();
 
 var app = builder.Build();
 
+if (trustForwardedHeaders)
+{
+    app.UseForwardedHeaders();
+}
+
 app.UseExceptionHandler();
 app.UseRateLimiter();
 
@@ -133,7 +159,6 @@ app.Run();
 
 static string ClientKey(HttpContext context) =>
     context.Connection.RemoteIpAddress?.ToString()
-    ?? context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
     ?? "anonymous";
 
 /// <summary>Entry-point type; public so integration tests can host the app via WebApplicationFactory.</summary>

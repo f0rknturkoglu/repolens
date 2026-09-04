@@ -38,6 +38,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${REPOLENS_DB_NAME:-repolens};Username=${REPOLENS_DB_USER:-repolens};Password=${REPOLENS_DB_PASSWORD:-repolens_dev_password}
+      ReverseProxy__TrustForwardedHeaders: "true"
     depends_on:
       postgres:
         condition: service_healthy

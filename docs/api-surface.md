@@ -80,6 +80,6 @@ a misleading login flow.
 
 ## Rate limiting
 
-Global 300 req/min per client; `expensive` policy (20 req/min) on analysis
+Global 300 req/min per client; `expensive` policy (20 req/min per client) on analysis
 POSTs, repository refresh, and recommendations. 429s include ProblemDetails;
 the UI maps them to actionable messages.

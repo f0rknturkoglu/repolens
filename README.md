@@ -5,11 +5,15 @@
 [![PostgreSQL 17 + pgvector](https://img.shields.io/badge/PostgreSQL-17_%2B_pgvector-336791?logo=postgresql)](https://github.com/pgvector/pgvector)
 [![Architecture](https://img.shields.io/badge/Architecture-Modular_Monolith-emerald)](#architecture)
 [![Deterministic Scoring](https://img.shields.io/badge/Scoring-Deterministic_%26_Versioned-blue)](#scoring-and-evidence-methodology)
-[![Tests](https://img.shields.io/badge/Tests-93_Unit_%7C_71_Integration-success)](#automated-testing-and-verification)
+[![Tests](https://img.shields.io/badge/Tests-93_Unit_%7C_73_Integration-success)](#automated-testing-and-verification)
 
 **RepoLens** is an evidence-backed GitHub ecosystem analysis platform that helps software engineers and technical founders decide **what to build next**.
 
 It runs bounded GitHub searches, builds candidate similarity graphs, and computes deterministic, explainable scores for idea saturation, competitor proximity, and portfolio value. PostgreSQL full-text search and pgvector cosine similarity provide hybrid retrieval through Reciprocal Rank Fusion, while LLMs are limited to query expansion and candidate-idea generation.
+
+<p align="center">
+  <img src="docs/assets/repolens-home.png" alt="RepoLens evidence-backed GitHub ecosystem intelligence dashboard" width="100%">
+</p>
 
 ---
 
@@ -43,7 +47,7 @@ RepoLens enforces **"Conclusion → Why → Evidence → Methodology"**:
 ### Pillar 1: Decide What to Build
 - **Validate an Idea (`/validate`):** Formulates a multi-query search plan, gathers candidates, clusters the similarity graph, calculates a deterministic `novelty-v1` score (0–100), and flags the closest 3 competitors with specific overlap reasons.
 - **Decide What to Build Next (`/recommend`):** Generates 3 diverse project proposals ranked by the `rec-v1` multi-factor formula, balancing originality, portfolio marginal value, feasibility, and goal fit.
-- **Portfolio Gap Analysis (`/portfolio`):** Maps a GitHub profile against an 8-category software engineering taxonomy, identifying areas of strong, moderate, or limited evidence. Provides a **"Bridge Gap"** action bridge directly into the recommendation engine.
+- **Portfolio Gap Analysis (`/portfolio`):** Maps a GitHub profile against an 11-category software engineering taxonomy, identifying areas of strong, moderate, or limited evidence. Provides a **"Bridge Gap"** action bridge directly into the recommendation engine.
 
 ### Pillar 2: Explore & Research
 - **Ecosystem Intelligence (`/ecosystem`):** Maps connected-component project clusters, market concentration, language distributions, and maintenance velocity for any software domain.
@@ -169,7 +173,7 @@ dotnet test tests/RepoLens.UnitTests
 
 # 3. Run integration tests (Testcontainers PostgreSQL + WireMock.Net)
 dotnet test tests/RepoLens.IntegrationTests
-# Passed: 71/71 (Requires Docker daemon; total 164/164 passing)
+# Passed: 73/73 (Requires Docker daemon; total 166/166 passing)
 
 # 4. Verify frontend contracts, types, and styles
 cd src/RepoLens.Web

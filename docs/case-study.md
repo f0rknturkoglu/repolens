@@ -6,6 +6,12 @@
 
 RepoLens implements a **deterministic intelligence engine** atop an ASP.NET Core 10 modular monolith and PostgreSQL 17 with `pgvector`. It replaces black-box LLM hallucinations with versioned mathematical formulas, hybrid reciprocal rank fusion (RRF), graph-based connected components clustering, and a durable background worker.
 
+<p align="center">
+  <img src="assets/repolens-validation.png" alt="RepoLens idea validation result with deterministic novelty score, bounded candidate evidence, and discovered competitors" width="100%">
+</p>
+
+<p align="center"><sub>Containerized validation run backed by live GitHub search and PostgreSQL persistence.</sub></p>
+
 ---
 
 ## The Problem & Engineering Motivation
@@ -30,7 +36,7 @@ graph TD
     end
 
     subgraph "ASP.NET Core 10 Monolith Edge"
-        API["Minimal APIs & Middleware<br/>• RateLimiting (300/min global, 20/min expensive)<br/>• ExceptionHandler (GitHub 403/429/5xx mapping)<br/>• OpenTelemetry Tracing & Metrics"]
+        API["Minimal APIs & Middleware<br/>• RateLimiting (300/min global, 20/min expensive per client)<br/>• ExceptionHandler (GitHub 403/429/5xx mapping)<br/>• OpenTelemetry Tracing & Metrics"]
     end
 
     subgraph "Core Domain & Application Engines"
@@ -132,4 +138,4 @@ Every key architectural decision involves conscious trade-offs between immediate
 
 - **Architected RepoLens**, a .NET 10 and React 19 platform for evidence-backed GitHub ecosystem analysis, using candidate-bounded deterministic scoring while restricting LLMs to query expansion and idea generation.
 - **Built hybrid repository retrieval** with PostgreSQL full-text search, pgvector cosine similarity, and Reciprocal Rank Fusion, keeping lexical and semantic search in a single persistence layer.
-- **Implemented a PostgreSQL-backed durable enrichment worker** with `FOR UPDATE SKIP LOCKED`, rate-limit-aware retries, crash recovery, and poison-job handling; validated by **93 unit and 71 containerized integration tests**.
+- **Implemented a PostgreSQL-backed durable enrichment worker** with `FOR UPDATE SKIP LOCKED`, rate-limit-aware retries, crash recovery, and poison-job handling; validated by **93 unit and 73 containerized integration tests**.
