@@ -97,6 +97,10 @@ graph TD
 
 All formulas are versioned in code and documented in [`docs/scoring.md`](docs/scoring.md).
 
+<p align="center">
+  <img src="docs/assets/repolens-validation.png" alt="RepoLens idea validation result with deterministic novelty score, bounded candidate evidence, and discovered competitors" width="100%">
+</p>
+
 ### 1. Estimated Novelty (`novelty-v1`)
 
 Computed over the evaluated candidate set ($N$ repositories):
